@@ -55,5 +55,7 @@ Express 5 backend with:
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
 ## AI Integration
-Uses Replit AI Integrations (OpenAI) — no user API key required.
-Environment variables: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY`
+Uses Replit AI Integrations (Gemini) — no user API key required.
+Model: `gemini-3.1-pro-preview` (latest, most powerful)
+Environment variables: `AI_INTEGRATIONS_GEMINI_BASE_URL`, `AI_INTEGRATIONS_GEMINI_API_KEY`
+Image analysis: Supports inline base64 image input via Gemini vision.
