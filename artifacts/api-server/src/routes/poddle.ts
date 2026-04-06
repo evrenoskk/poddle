@@ -85,8 +85,10 @@ router.post("/chat", async (req, res) => {
 
     contents.push({ role: "user", parts: userParts });
 
+    const model = imageBase64 ? "gemini-3.1-pro-preview" : "gemini-2.5-flash";
+
     const stream = await ai.models.generateContentStream({
-      model: "gemini-2.5-flash",
+      model,
       contents,
       config: {
         systemInstruction,
