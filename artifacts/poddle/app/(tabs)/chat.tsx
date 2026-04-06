@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Markdown from "react-native-markdown-display";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
@@ -37,6 +38,44 @@ interface Msg {
 
 function MessageBubble({ msg, colors }: { msg: Msg; colors: ReturnType<typeof useColors> }) {
   const isUser = msg.role === "user";
+
+  const markdownStyles = {
+    body: { color: colors.foreground, fontSize: 14.5, lineHeight: 22 },
+    heading1: { color: colors.foreground, fontSize: 17, fontWeight: "700" as const, marginBottom: 6, marginTop: 4 },
+    heading2: { color: colors.foreground, fontSize: 15.5, fontWeight: "700" as const, marginBottom: 4, marginTop: 8 },
+    heading3: { color: colors.primary, fontSize: 14, fontWeight: "700" as const, marginBottom: 2, marginTop: 6 },
+    strong: { fontWeight: "700" as const, color: colors.foreground },
+    em: { fontStyle: "italic" as const },
+    bullet_list: { marginTop: 4, marginBottom: 4 },
+    ordered_list: { marginTop: 4, marginBottom: 4 },
+    list_item: { marginBottom: 3 },
+    bullet_list_icon: { color: colors.primary, marginTop: 6 },
+    blockquote: {
+      backgroundColor: "rgba(239, 68, 68, 0.08)",
+      borderLeftColor: "#ef4444",
+      borderLeftWidth: 3,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 4,
+      marginVertical: 6,
+    },
+    code_inline: {
+      backgroundColor: colors.primaryLight,
+      color: colors.primary,
+      paddingHorizontal: 4,
+      paddingVertical: 1,
+      borderRadius: 3,
+      fontSize: 13,
+    },
+    fence: {
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      padding: 10,
+      marginVertical: 6,
+    },
+    hr: { backgroundColor: colors.border, height: 1, marginVertical: 8 },
+  };
+
   return (
     <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAssistant]}>
       {!isUser && (
@@ -44,7 +83,7 @@ function MessageBubble({ msg, colors }: { msg: Msg; colors: ReturnType<typeof us
           <MaterialCommunityIcons name="robot-happy-outline" size={17} color="#fff" />
         </View>
       )}
-      <View style={{ maxWidth: "78%", gap: 4 }}>
+      <View style={{ maxWidth: "82%", gap: 4 }}>
         {msg.mediaUri && (
           <Image
             source={{ uri: msg.mediaUri }}
@@ -60,14 +99,11 @@ function MessageBubble({ msg, colors }: { msg: Msg; colors: ReturnType<typeof us
               : { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
           ]}
         >
-          <Text
-            style={[
-              styles.bubbleText,
-              { color: isUser ? "#fff" : colors.foreground },
-            ]}
-          >
-            {msg.content}
-          </Text>
+          {isUser ? (
+            <Text style={[styles.bubbleText, { color: "#fff" }]}>{msg.content}</Text>
+          ) : (
+            <Markdown style={markdownStyles}>{msg.content}</Markdown>
+          )}
         </View>
         <Text style={[styles.msgTime, { color: colors.mutedForeground, textAlign: isUser ? "right" : "left" }]}>
           {new Date(msg.timestamp).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
