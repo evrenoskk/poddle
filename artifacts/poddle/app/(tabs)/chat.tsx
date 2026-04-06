@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
 import { SubscriptionModal } from "@/components/SubscriptionModal";
-import { PawIcon } from "@/components/PawIcon";
+import { PodleLogo } from "@/components/PodleLogo";
 import { fetch } from "expo/fetch";
 
 const API_BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
@@ -41,7 +41,7 @@ function MessageBubble({ msg, colors }: { msg: Msg; colors: ReturnType<typeof us
     <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAssistant]}>
       {!isUser && (
         <View style={[styles.aiAvatar, { backgroundColor: colors.primary }]}>
-          <PawIcon size={16} color="#fff" />
+          <MaterialCommunityIcons name="robot-happy-outline" size={17} color="#fff" />
         </View>
       )}
       <View style={{ maxWidth: "78%", gap: 4 }}>
@@ -245,8 +245,8 @@ export default function ChatScreen() {
       >
         <View style={styles.headerInner}>
           <View style={styles.headerLeft}>
-            <View style={[styles.aiIcon, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
-              <PawIcon size={20} color="#fff" />
+            <View style={[styles.aiIcon, { backgroundColor: "rgba(255,255,255,0.15)", overflow: "hidden" }]}>
+              <PodleLogo size={40} rounded />
             </View>
             <View>
               <Text style={styles.headerTitle}>Poddle AI</Text>
@@ -286,8 +286,8 @@ export default function ChatScreen() {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           ListEmptyComponent={() => (
             <View style={styles.emptyChat}>
-              <View style={[styles.emptyChatIcon, { backgroundColor: colors.primaryLight }]}>
-                <PawIcon size={40} color={colors.primary} />
+              <View style={[styles.emptyChatIcon, { overflow: "hidden" }]}>
+                <PodleLogo size={80} rounded />
               </View>
               <Text style={[styles.emptyChatTitle, { color: colors.foreground }]}>
                 Merhaba! Ben Poddle
@@ -307,7 +307,7 @@ export default function ChatScreen() {
           ListFooterComponent={isSending ? (
             <View style={[styles.msgRow, styles.msgRowAssistant]}>
               <View style={[styles.aiAvatar, { backgroundColor: colors.primary }]}>
-                <PawIcon size={16} color="#fff" />
+                <MaterialCommunityIcons name="robot-happy-outline" size={17} color="#fff" />
               </View>
               <View style={[styles.bubble, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}>
                 <ActivityIndicator size="small" color={colors.primary} />

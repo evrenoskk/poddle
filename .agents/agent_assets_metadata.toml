@@ -12,3 +12,9 @@ id = "FGywJe8svrO1ITKjDIstn"
 uri = "file://artifacts/poddle/assets/images/dog_placeholder.png"
 type = "image"
 title = "golden retriever placeholder"
+
+[[generated]]
+id = "2uUI8VgDg8JskuaeNg5h8"
+uri = "file://artifacts/poddle/assets/images/poddle_logo.png"
+type = "image"
+title = "poddle logo paw"

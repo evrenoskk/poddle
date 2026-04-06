@@ -3,11 +3,9 @@ import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React from "react";
 import {
-  Alert,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,7 +16,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
 import { TaskCard } from "@/components/TaskCard";
-import { PawIcon } from "@/components/PawIcon";
+import { PodleLogo } from "@/components/PodleLogo";
+
+const SPECIES_ICON: Record<string, string> = {
+  Köpek: "dog",
+  Kedi: "cat",
+  Kuş: "bird",
+  Tavşan: "rabbit",
+  Diğer: "paw",
+};
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -44,10 +50,14 @@ export default function HomeScreen() {
   const dailyTip = tips[new Date().getDay() % tips.length];
 
   const quickActions = [
-    { icon: "user", label: "Evcil\nHayvanlarım", route: "/profile" as const },
-    { icon: "calendar", label: "Randevular", route: "/health" as const },
-    { icon: "book-open", label: "Kaynaklar", route: "/health" as const },
+    { icon: "activity", label: "Sağlık", color: "#10B981", bg: "#D1FAE5", route: "/health" as const },
+    { icon: "message-circle", label: "Poddle AI", color: "#7C3AED", bg: "#EDE9FE", route: "/chat" as const },
+    { icon: "calendar", label: "Randevu", color: "#F59E0B", bg: "#FEF3C7", route: "/health" as const },
+    { icon: "user", label: "Profil", color: "#2563EB", bg: "#DBEAFE", route: "/profile" as const },
   ];
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Günaydın" : hour < 18 ? "İyi günler" : "İyi akşamlar";
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -55,89 +65,163 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: bottomInset + 80 }}
       >
-        {/* Header */}
+        {/* Gradient Header */}
         <LinearGradient
-          colors={[colors.primary, "#1d4ed8"]}
+          colors={["#1E40AF", "#2563EB", "#3B82F6"]}
           style={[styles.header, { paddingTop: topInset + 16 }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
+          {/* Decorative circles */}
+          <View style={styles.headerDecorCircle1} />
+          <View style={styles.headerDecorCircle2} />
+
           <View style={styles.headerContent}>
             <View style={styles.headerLeft}>
-              <View style={[styles.avatar, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
-                <PawIcon size={22} color="#fff" />
-              </View>
+              <PodleLogo size={44} rounded />
               <View>
-                <Text style={styles.headerGreeting}>Hoş geldiniz!</Text>
-                <Text style={styles.headerTitle}>Poddle</Text>
+                <Text style={styles.headerGreeting}>{greeting} 👋</Text>
+                <Text style={styles.headerBrand}>Poddle</Text>
               </View>
             </View>
             <TouchableOpacity
-              style={[styles.notifBtn, { backgroundColor: "rgba(255,255,255,0.15)" }]}
+              style={styles.notifBtn}
             >
-              <Feather name="bell" size={20} color="#fff" />
+              <Feather name="bell" size={18} color="#fff" />
+              <View style={styles.notifDot} />
             </TouchableOpacity>
           </View>
+
+          {/* Active pet preview in header */}
+          {activePet && (
+            <View style={styles.headerPetBadge}>
+              <View style={[styles.headerPetDot, { backgroundColor: "#10B981" }]} />
+              <Text style={styles.headerPetText}>{activePet.name} — {activePet.status}</Text>
+            </View>
+          )}
         </LinearGradient>
 
         <View style={styles.content}>
-          {/* Active Pet Card */}
+          {/* Hero Pet Card */}
           {activePet ? (
             <TouchableOpacity
-              style={[styles.petHero, { backgroundColor: colors.card, borderColor: colors.border }]}
+              activeOpacity={0.92}
               onPress={() => router.push("/profile")}
-              activeOpacity={0.9}
+              style={styles.petHeroWrapper}
             >
-              <View style={styles.petHeroLeft}>
-                <View style={styles.statusRow}>
-                  <View style={[styles.statusDot, { backgroundColor: colors.accent }]} />
-                  <Text style={[styles.statusText, { color: colors.mutedForeground }]}>
-                    {activePet.status.toUpperCase()}
-                  </Text>
+              <LinearGradient
+                colors={["#1E3A8A", "#2563EB"]}
+                style={styles.petHeroCard}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <View style={styles.petHeroDecor} />
+                <View style={styles.petHeroLeft}>
+                  <View style={styles.petHeroStatusRow}>
+                    <View style={styles.petHeroStatusDot} />
+                    <Text style={styles.petHeroStatus}>{activePet.status}</Text>
+                  </View>
+                  <Text style={styles.petHeroName}>{activePet.name}</Text>
+                  <Text style={styles.petHeroBreed}>{activePet.breed}</Text>
+                  <View style={styles.petHeroStats}>
+                    <View style={styles.petHeroStat}>
+                      <Text style={styles.petHeroStatVal}>{activePet.age}</Text>
+                      <Text style={styles.petHeroStatLbl}>yaş</Text>
+                    </View>
+                    <View style={styles.petHeroStatDivider} />
+                    <View style={styles.petHeroStat}>
+                      <Text style={styles.petHeroStatVal}>{activePet.weight}</Text>
+                      <Text style={styles.petHeroStatLbl}>kg</Text>
+                    </View>
+                    <View style={styles.petHeroStatDivider} />
+                    <View style={styles.petHeroStat}>
+                      <Text style={styles.petHeroStatVal}>{activePet.gender === "male" ? "♂" : "♀"}</Text>
+                      <Text style={styles.petHeroStatLbl}>{activePet.gender === "male" ? "erkek" : "dişi"}</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.petHeroBtn}
+                    onPress={() => router.push("/profile")}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.petHeroBtnText}>Profili Görüntüle</Text>
+                    <Feather name="arrow-right" size={14} color="#2563EB" />
+                  </TouchableOpacity>
                 </View>
-                <Text style={[styles.petName, { color: colors.foreground }]}>{activePet.name}</Text>
-                <Text style={[styles.petBreed, { color: colors.mutedForeground }]}>
-                  {activePet.breed} · {activePet.age} yaş
-                </Text>
-                <TouchableOpacity
-                  style={[styles.viewProfileBtn, { backgroundColor: colors.primary }]}
-                  onPress={() => router.push("/profile")}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.viewProfileText}>Profili Gör</Text>
-                  <Feather name="arrow-right" size={14} color="#fff" />
-                </TouchableOpacity>
-              </View>
-              {activePet.imageUri ? (
-                <Image
-                  source={{ uri: activePet.imageUri }}
-                  style={styles.petHeroImage}
-                  contentFit="cover"
-                />
-              ) : (
-                <View style={[styles.petHeroImagePlaceholder, { backgroundColor: colors.primaryLight }]}>
-                  <MaterialCommunityIcons name="dog" size={48} color={colors.primary} />
+                <View style={styles.petHeroRight}>
+                  {activePet.imageUri ? (
+                    <Image
+                      source={{ uri: activePet.imageUri }}
+                      style={styles.petHeroImage}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={styles.petHeroImagePlaceholder}>
+                      <MaterialCommunityIcons
+                        name={(SPECIES_ICON[activePet.species] ?? "paw") as any}
+                        size={52}
+                        color="rgba(255,255,255,0.9)"
+                      />
+                    </View>
+                  )}
                 </View>
-              )}
+              </LinearGradient>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.addPetCard, { backgroundColor: colors.primary }]}
               onPress={() => router.push("/profile")}
-              activeOpacity={0.85}
+              activeOpacity={0.88}
             >
-              <Feather name="plus-circle" size={28} color="#fff" />
-              <Text style={styles.addPetText}>İlk evcil hayvanınızı ekleyin</Text>
-              <Text style={styles.addPetSubtext}>Poddle ile bakımını kolaylaştırın</Text>
+              <LinearGradient
+                colors={["#2563EB", "#7C3AED"]}
+                style={styles.addPetCard}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <View style={styles.addPetIconWrap}>
+                  <Feather name="plus" size={28} color="#2563EB" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.addPetTitle}>İlk evcil hayvanınızı ekleyin</Text>
+                  <Text style={styles.addPetSub}>Sağlık takibine hemen başlayın</Text>
+                </View>
+                <Feather name="chevron-right" size={22} color="rgba(255,255,255,0.7)" />
+              </LinearGradient>
             </TouchableOpacity>
           )}
+
+          {/* Quick Actions Grid */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Hızlı Erişim</Text>
+            <View style={styles.quickGrid}>
+              {quickActions.map((a) => (
+                <TouchableOpacity
+                  key={a.label}
+                  style={[styles.quickCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    router.push(a.route);
+                  }}
+                  activeOpacity={0.82}
+                >
+                  <View style={[styles.quickIconBox, { backgroundColor: a.bg }]}>
+                    <Feather name={a.icon as any} size={20} color={a.color} />
+                  </View>
+                  <Text style={[styles.quickLabel, { color: colors.foreground }]}>{a.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
           {/* Upcoming Tasks */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Yaklaşan Görevler</Text>
-              <TouchableOpacity onPress={() => router.push("/health")}>
-                <Text style={[styles.sectionLink, { color: colors.primary }]}>Tümü</Text>
+              <TouchableOpacity
+                onPress={() => router.push("/health")}
+                style={[styles.seeAllBtn, { backgroundColor: colors.primaryLight }]}
+              >
+                <Text style={[styles.seeAllText, { color: colors.primary }]}>Tümünü gör</Text>
               </TouchableOpacity>
             </View>
             {upcomingTasks.length > 0 ? (
@@ -150,56 +234,43 @@ export default function HomeScreen() {
                 />
               ))
             ) : (
-              <View style={[styles.emptyTasks, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Feather name="check-circle" size={28} color={colors.mutedForeground} />
-                <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+              <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={[styles.emptyIconBox, { backgroundColor: colors.primaryLight }]}>
+                  <Feather name="check-circle" size={22} color={colors.primary} />
+                </View>
+                <Text style={[styles.emptyText, { color: colors.foreground }]}>
                   {activePet ? "Yaklaşan görev yok" : "Önce bir evcil hayvan ekleyin"}
+                </Text>
+                <Text style={[styles.emptySubText, { color: colors.mutedForeground }]}>
+                  {activePet ? "Tebrikler! Her şey güncel 🎉" : "Profil sekmesinden ekleyebilirsiniz"}
                 </Text>
               </View>
             )}
           </View>
 
-          {/* Quick Actions */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Hızlı Eylemler</Text>
-            <View style={styles.quickActions}>
-              {quickActions.map((action) => (
-                <TouchableOpacity
-                  key={action.label}
-                  style={[styles.quickAction, { backgroundColor: colors.card, borderColor: colors.border }]}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    router.push(action.route);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.quickActionIcon, { backgroundColor: colors.primaryLight }]}>
-                    <Feather name={action.icon as any} size={22} color={colors.primary} />
-                  </View>
-                  <Text style={[styles.quickActionLabel, { color: colors.foreground }]}>
-                    {action.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Daily Tip */}
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => router.push("/chat")}
-          >
+          {/* AI CTA Card */}
+          <TouchableOpacity activeOpacity={0.9} onPress={() => router.push("/chat")}>
             <LinearGradient
-              colors={[colors.primary, "#1d4ed8"]}
-              style={styles.tipCard}
+              colors={["#7C3AED", "#4F46E5", "#2563EB"]}
+              style={styles.aiCard}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <View style={styles.tipPawBg}>
-                <PawIcon size={80} color="rgba(255,255,255,0.08)" />
+              <View style={styles.aiCardDecor} />
+              <View style={styles.aiCardLeft}>
+                <View style={styles.aiCardBadge}>
+                  <Text style={styles.aiCardBadgeText}>AI</Text>
+                </View>
+                <Text style={styles.aiCardTitle}>Poddle'a Sor</Text>
+                <Text style={styles.aiCardSub}>{dailyTip}</Text>
+                <View style={styles.aiCardBtn}>
+                  <Text style={styles.aiCardBtnText}>Sohbet Başlat</Text>
+                  <Feather name="arrow-right" size={13} color="#7C3AED" />
+                </View>
               </View>
-              <Text style={styles.tipLabel}>Poddle'dan Günlük İpucu</Text>
-              <Text style={styles.tipText}>{dailyTip}</Text>
+              <View style={styles.aiCardIcon}>
+                <MaterialCommunityIcons name="robot-excited" size={52} color="rgba(255,255,255,0.9)" />
+              </View>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -212,9 +283,28 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    overflow: "hidden",
+  },
+  headerDecorCircle1: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    top: -50,
+    right: -40,
+  },
+  headerDecorCircle2: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    bottom: -30,
+    left: 20,
   },
   headerContent: {
     flexDirection: "row",
@@ -226,118 +316,208 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   headerGreeting: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.7)",
+    color: "rgba(255,255,255,0.75)",
     fontFamily: "Inter_400Regular",
   },
-  headerTitle: {
+  headerBrand: {
     fontSize: 22,
     color: "#fff",
     fontFamily: "Inter_700Bold",
+    letterSpacing: -0.5,
   },
   notifBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  notifDot: {
+    position: "absolute",
+    top: 9,
+    right: 9,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#EF4444",
+    borderWidth: 1.5,
+    borderColor: "#2563EB",
+  },
+  headerPetBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 14,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  headerPetDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  headerPetText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.92)",
   },
   content: {
     padding: 16,
-    gap: 4,
+    gap: 0,
   },
-  petHero: {
-    flexDirection: "row",
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
+  petHeroWrapper: {
     marginBottom: 16,
+    borderRadius: 24,
     overflow: "hidden",
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  petHeroCard: {
+    flexDirection: "row",
+    padding: 20,
     alignItems: "center",
+    overflow: "hidden",
+  },
+  petHeroDecor: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    top: -60,
+    right: 60,
   },
   petHeroLeft: {
     flex: 1,
     gap: 6,
   },
-  statusRow: {
+  petHeroStatusRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
+  petHeroStatusDot: {
+    width: 7,
+    height: 7,
     borderRadius: 4,
+    backgroundColor: "#10B981",
   },
-  statusText: {
-    fontSize: 10,
+  petHeroStatus: {
+    fontSize: 11,
     fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1,
+    color: "#6EE7B7",
+    letterSpacing: 0.5,
   },
-  petName: {
-    fontSize: 22,
+  petHeroName: {
+    fontSize: 26,
     fontFamily: "Inter_700Bold",
+    color: "#fff",
+    letterSpacing: -0.5,
   },
-  petBreed: {
+  petHeroBreed: {
     fontSize: 13,
     fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.65)",
   },
-  viewProfileBtn: {
+  petHeroStats: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    alignSelf: "flex-start",
+    gap: 12,
     marginTop: 4,
   },
-  viewProfileText: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-    color: "#fff",
-  },
-  petHeroImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 14,
-    marginLeft: 12,
-  },
-  petHeroImagePlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 14,
-    marginLeft: 12,
+  petHeroStat: {
     alignItems: "center",
-    justifyContent: "center",
   },
-  addPetCard: {
-    padding: 20,
-    borderRadius: 20,
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
-  },
-  addPetText: {
+  petHeroStatVal: {
     fontSize: 16,
     fontFamily: "Inter_700Bold",
     color: "#fff",
   },
-  addPetSubtext: {
-    fontSize: 13,
+  petHeroStatLbl: {
+    fontSize: 10,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.75)",
+    color: "rgba(255,255,255,0.55)",
+  },
+  petHeroStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  petHeroBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: "#fff",
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  petHeroBtnText: {
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+    color: "#2563EB",
+  },
+  petHeroRight: {},
+  petHeroImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 20,
+    marginLeft: 12,
+  },
+  petHeroImagePlaceholder: {
+    width: 110,
+    height: 110,
+    borderRadius: 20,
+    marginLeft: 12,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addPetCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 18,
+    borderRadius: 22,
+    gap: 14,
+    marginBottom: 16,
+  },
+  addPetIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addPetTitle: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: "#fff",
+    marginBottom: 2,
+  },
+  addPetSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.7)",
   },
   section: {
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 12,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -345,71 +525,131 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: "Inter_700Bold",
+  seeAllBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
-  sectionLink: {
-    fontSize: 14,
+  seeAllText: {
+    fontSize: 12,
     fontFamily: "Inter_600SemiBold",
   },
-  emptyTasks: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 20,
-    alignItems: "center",
-    gap: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  quickActions: {
+  quickGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
-    marginTop: 4,
   },
-  quickAction: {
-    flex: 1,
+  quickCard: {
+    width: "47%",
+    flexDirection: "row",
     alignItems: "center",
     padding: 14,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    gap: 8,
+    gap: 12,
   },
-  quickActionIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+  quickIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
   },
-  quickActionLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-    textAlign: "center",
+  quickLabel: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
   },
-  tipCard: {
-    borderRadius: 20,
+  emptyCard: {
+    borderRadius: 18,
+    borderWidth: 1,
     padding: 20,
-    overflow: "hidden",
-    marginTop: 4,
+    alignItems: "center",
+    gap: 8,
   },
-  tipPawBg: {
-    position: "absolute",
-    right: -10,
-    bottom: -10,
-  },
-  tipLabel: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.7)",
+  emptyIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 4,
   },
-  tipText: {
-    fontSize: 16,
+  emptyText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  emptySubText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+  },
+  aiCard: {
+    borderRadius: 24,
+    padding: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    overflow: "hidden",
+    shadowColor: "#7C3AED",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  aiCardDecor: {
+    position: "absolute",
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    top: -40,
+    right: 30,
+  },
+  aiCardLeft: {
+    flex: 1,
+    gap: 6,
+  },
+  aiCardBadge: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
+  aiCardBadgeText: {
+    fontSize: 10,
     fontFamily: "Inter_700Bold",
     color: "#fff",
-    maxWidth: "80%",
+    letterSpacing: 1,
+  },
+  aiCardTitle: {
+    fontSize: 20,
+    fontFamily: "Inter_700Bold",
+    color: "#fff",
+  },
+  aiCardSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.7)",
+    maxWidth: "85%",
+    lineHeight: 17,
+  },
+  aiCardBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#fff",
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  aiCardBtnText: {
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+    color: "#7C3AED",
+  },
+  aiCardIcon: {
+    marginLeft: 8,
   },
 });

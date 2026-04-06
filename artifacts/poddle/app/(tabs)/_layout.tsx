@@ -31,6 +31,42 @@ function NativeTabLayout() {
   );
 }
 
+function TabIcon({
+  icon,
+  color,
+  focused,
+}: {
+  icon: string;
+  color: string;
+  focused: boolean;
+}) {
+  const colors = useColors();
+  return (
+    <View
+      style={[
+        styles.tabIconBg,
+        focused && { backgroundColor: colors.primaryLight },
+      ]}
+    >
+      <Feather name={icon as any} size={20} color={color} />
+    </View>
+  );
+}
+
+function TabIconAI({ color, focused }: { color: string; focused: boolean }) {
+  const colors = useColors();
+  return (
+    <View
+      style={[
+        styles.tabIconBg,
+        focused && { backgroundColor: colors.primaryLight },
+      ]}
+    >
+      <MaterialCommunityIcons name="robot-happy-outline" size={21} color={color} />
+    </View>
+  );
+}
+
 function ClassicTabLayout() {
   const colors = useColors();
   const colorScheme = useColorScheme();
@@ -47,37 +83,45 @@ function ClassicTabLayout() {
         tabBarStyle: {
           position: "absolute",
           backgroundColor: isIOS ? "transparent" : colors.card,
-          borderTopWidth: 1,
+          borderTopWidth: 0.5,
           borderTopColor: colors.border,
-          elevation: 0,
-          height: isWeb ? 84 : 60,
+          elevation: 20,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+          height: isWeb ? 84 : 66,
+          paddingBottom: isWeb ? 0 : 10,
+          paddingTop: 6,
         },
         tabBarLabelStyle: {
           fontSize: 10,
-          fontFamily: "Inter_500Medium",
-          marginBottom: isWeb ? 0 : 4,
+          fontFamily: "Inter_600SemiBold",
+          marginTop: 2,
         },
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
-              intensity={100}
-              tint={isDark ? "dark" : "light"}
+              intensity={80}
+              tint={isDark ? "dark" : "extraLight"}
               style={StyleSheet.absoluteFill}
             />
-          ) : isWeb ? (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />
-          ) : null,
+          ) : (
+            <View
+              style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]}
+            />
+          ),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Ana Sayfa",
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
               <SymbolView name="house" tintColor={color} size={24} />
             ) : (
-              <Feather name="home" size={22} color={color} />
+              <TabIcon icon="home" color={color} focused={focused} />
             ),
         }}
       />
@@ -85,11 +129,11 @@ function ClassicTabLayout() {
         name="chat"
         options={{
           title: "Poddle AI",
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
               <SymbolView name="bubble.left" tintColor={color} size={24} />
             ) : (
-              <MaterialCommunityIcons name="robot-happy-outline" size={23} color={color} />
+              <TabIconAI color={color} focused={focused} />
             ),
         }}
       />
@@ -97,11 +141,11 @@ function ClassicTabLayout() {
         name="health"
         options={{
           title: "Sağlık",
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
               <SymbolView name="heart" tintColor={color} size={24} />
             ) : (
-              <Feather name="activity" size={22} color={color} />
+              <TabIcon icon="activity" color={color} focused={focused} />
             ),
         }}
       />
@@ -109,11 +153,11 @@ function ClassicTabLayout() {
         name="profile"
         options={{
           title: "Profil",
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
               <SymbolView name="person" tintColor={color} size={24} />
             ) : (
-              <Feather name="user" size={22} color={color} />
+              <TabIcon icon="user" color={color} focused={focused} />
             ),
         }}
       />
@@ -127,3 +171,13 @@ export default function TabLayout() {
   }
   return <ClassicTabLayout />;
 }
+
+const styles = StyleSheet.create({
+  tabIconBg: {
+    width: 44,
+    height: 28,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
