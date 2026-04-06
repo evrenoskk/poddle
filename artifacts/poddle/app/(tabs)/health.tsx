@@ -147,7 +147,7 @@ export default function HealthScreen() {
   const bottomInset = insets.bottom + (Platform.OS === "web" ? 34 : 0);
 
   const activePet = pets.find((p) => p.id === activePetId) ?? pets[0];
-  const petTasks = tasks.filter((t) => t.petId === (activePet?.id ?? ""));
+  const petTasks = tasks.filter((t) => t.petId === String(activePet?.id ?? ""));
   const pendingTasks = petTasks.filter((t) => !t.completed);
   const completedTasks = petTasks.filter((t) => t.completed);
 
@@ -294,7 +294,7 @@ export default function HealthScreen() {
         <AddTaskModal
           visible={showAddModal}
           onClose={() => setShowAddModal(false)}
-          petId={activePet.id}
+          petId={String(activePet.id)}
         />
       )}
     </View>

@@ -7,15 +7,17 @@ import React, {
   useState,
 } from "react";
 
+const API_BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
+
 export type Pet = {
-  id: string;
+  id: number;
   name: string;
   species: string;
   breed: string;
   age: number;
   weight: number;
   gender: "male" | "female";
-  imageUri?: string;
+  imageUri?: string | null;
   status: string;
 };
 
@@ -47,15 +49,15 @@ export type Subscription = {
 
 type AppContextType = {
   pets: Pet[];
-  activePetId: string | null;
+  activePetId: number | null;
   tasks: Task[];
   messages: ChatMessage[];
   subscription: Subscription;
   isLoaded: boolean;
-  addPet: (pet: Pet) => void;
-  updatePet: (pet: Pet) => void;
-  deletePet: (id: string) => void;
-  setActivePetId: (id: string | null) => void;
+  addPet: (pet: Omit<Pet, "id">) => Promise<void>;
+  updatePet: (pet: Pet) => Promise<void>;
+  deletePet: (id: number) => Promise<void>;
+  setActivePetId: (id: number | null) => void;
   addTask: (task: Task) => void;
   updateTask: (task: Task) => void;
   deleteTask: (id: string) => void;
@@ -63,12 +65,12 @@ type AppContextType = {
   clearMessages: () => void;
   canAskQuestion: () => boolean;
   useQuestion: () => void;
+  refreshPets: () => Promise<void>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  PETS: "@poddle_pets",
   ACTIVE_PET: "@poddle_active_pet",
   TASKS: "@poddle_tasks",
   MESSAGES: "@poddle_messages",
@@ -83,39 +85,47 @@ const defaultSubscription: Subscription = {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pets, setPets] = useState<Pet[]>([]);
-  const [activePetId, setActivePetIdState] = useState<string | null>(null);
+  const [activePetId, setActivePetIdState] = useState<number | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [subscription, setSubscription] =
     useState<Subscription>(defaultSubscription);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const fetchPets = useCallback(async () => {
+    try {
+      const resp = await fetch(`${API_BASE}/api/pets`);
+      if (resp.ok) {
+        const data = await resp.json();
+        setPets(data);
+      }
+    } catch {
+      // offline - keep current pets
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
-        const [petsData, activePetData, tasksData, messagesData, subData] =
+        const [activePetData, tasksData, messagesData, subData] =
           await Promise.all([
-            AsyncStorage.getItem(STORAGE_KEYS.PETS),
             AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_PET),
             AsyncStorage.getItem(STORAGE_KEYS.TASKS),
             AsyncStorage.getItem(STORAGE_KEYS.MESSAGES),
             AsyncStorage.getItem(STORAGE_KEYS.SUBSCRIPTION),
           ]);
 
-        if (petsData) setPets(JSON.parse(petsData));
-        if (activePetData) setActivePetIdState(activePetData);
+        if (activePetData) setActivePetIdState(parseInt(activePetData));
         if (tasksData) setTasks(JSON.parse(tasksData));
         if (messagesData) setMessages(JSON.parse(messagesData));
         if (subData) setSubscription(JSON.parse(subData));
+
+        await fetchPets();
       } finally {
         setIsLoaded(true);
       }
     })();
-  }, []);
-
-  const persistPets = useCallback(async (newPets: Pet[]) => {
-    await AsyncStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify(newPets));
-  }, []);
+  }, [fetchPets]);
 
   const persistTasks = useCallback(async (newTasks: Task[]) => {
     await AsyncStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(newTasks));
@@ -136,41 +146,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addPet = useCallback(
-    (pet: Pet) => {
-      setPets((prev) => {
-        const next = [...prev, pet];
-        persistPets(next);
-        return next;
+    async (pet: Omit<Pet, "id">) => {
+      const resp = await fetch(`${API_BASE}/api/pets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: pet.name,
+          species: pet.species,
+          breed: pet.breed,
+          age: pet.age,
+          weight: pet.weight,
+          gender: pet.gender,
+          imageUri: pet.imageUri ?? null,
+          status: pet.status,
+        }),
       });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || "Kayıt hatası");
+      }
+      const newPet: Pet = await resp.json();
+      setPets((prev) => [...prev, newPet]);
+      setActivePetIdState(newPet.id);
+      AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_PET, String(newPet.id));
     },
-    [persistPets]
+    []
   );
 
-  const updatePet = useCallback(
-    (pet: Pet) => {
-      setPets((prev) => {
-        const next = prev.map((p) => (p.id === pet.id ? pet : p));
-        persistPets(next);
-        return next;
-      });
-    },
-    [persistPets]
-  );
+  const updatePet = useCallback(async (pet: Pet) => {
+    const resp = await fetch(`${API_BASE}/api/pets/${pet.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(pet),
+    });
+    if (resp.ok) {
+      const updated: Pet = await resp.json();
+      setPets((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    }
+  }, []);
 
-  const deletePet = useCallback(
-    (id: string) => {
-      setPets((prev) => {
-        const next = prev.filter((p) => p.id !== id);
-        persistPets(next);
-        return next;
-      });
-    },
-    [persistPets]
-  );
+  const deletePet = useCallback(async (id: number) => {
+    await fetch(`${API_BASE}/api/pets/${id}`, { method: "DELETE" });
+    setPets((prev) => prev.filter((p) => p.id !== id));
+  }, []);
 
-  const setActivePetId = useCallback((id: string | null) => {
+  const setActivePetId = useCallback((id: number | null) => {
     setActivePetIdState(id);
-    if (id) AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_PET, id);
+    if (id != null) AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_PET, String(id));
     else AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_PET);
   }, []);
 
@@ -263,6 +285,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         clearMessages,
         canAskQuestion,
         useQuestion,
+        refreshPets: fetchPets,
       }}
     >
       {children}

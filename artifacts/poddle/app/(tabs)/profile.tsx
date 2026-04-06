@@ -5,6 +5,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   Platform,
@@ -23,7 +24,7 @@ import { PawIcon } from "@/components/PawIcon";
 function AddPetModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { addPet, setActivePetId } = useApp();
+  const { addPet } = useApp();
   const [name, setName] = useState("");
   const [species, setSpecies] = useState("Köpek");
   const [breed, setBreed] = useState("");
@@ -31,6 +32,7 @@ function AddPetModal({ visible, onClose }: { visible: boolean; onClose: () => vo
   const [weight, setWeight] = useState("");
   const [gender, setGender] = useState<"male" | "female">("male");
   const [imageUri, setImageUri] = useState<string | undefined>();
+  const [saving, setSaving] = useState(false);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -42,33 +44,37 @@ function AddPetModal({ visible, onClose }: { visible: boolean; onClose: () => vo
     }
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!name.trim()) {
       Alert.alert("Hata", "İsim gereklidir.");
       return;
     }
-    const newPet: Pet = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-      name: name.trim(),
-      species,
-      breed: breed.trim() || species,
-      age: parseInt(age) || 1,
-      weight: parseFloat(weight) || 5,
-      gender,
-      imageUri,
-      status: "Mutlu",
-    };
-    addPet(newPet);
-    setActivePetId(newPet.id);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setName("");
-    setSpecies("Köpek");
-    setBreed("");
-    setAge("");
-    setWeight("");
-    setGender("male");
-    setImageUri(undefined);
-    onClose();
+    setSaving(true);
+    try {
+      await addPet({
+        name: name.trim(),
+        species,
+        breed: breed.trim() || species,
+        age: parseInt(age) || 1,
+        weight: parseFloat(weight) || 5,
+        gender,
+        imageUri: imageUri ?? null,
+        status: "Mutlu",
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setName("");
+      setSpecies("Köpek");
+      setBreed("");
+      setAge("");
+      setWeight("");
+      setGender("male");
+      setImageUri(undefined);
+      onClose();
+    } catch (err: any) {
+      Alert.alert("Hata", err.message || "Kayıt edilemedi, lütfen tekrar deneyin.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -88,7 +94,7 @@ function AddPetModal({ visible, onClose }: { visible: boolean; onClose: () => vo
             <View style={styles.handle} />
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>Evcil Hayvan Ekle</Text>
-              <TouchableOpacity onPress={onClose}>
+              <TouchableOpacity onPress={onClose} disabled={saving}>
                 <Feather name="x" size={22} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
@@ -179,8 +185,17 @@ function AddPetModal({ visible, onClose }: { visible: boolean; onClose: () => vo
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={[styles.addBtn, { backgroundColor: colors.primary }]} onPress={handleAdd} activeOpacity={0.85}>
-              <Text style={styles.addBtnText}>Ekle</Text>
+            <TouchableOpacity
+              style={[styles.addBtn, { backgroundColor: saving ? colors.mutedForeground : colors.primary }]}
+              onPress={handleAdd}
+              disabled={saving}
+              activeOpacity={0.85}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.addBtnText}>Ekle</Text>
+              )}
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -227,7 +242,7 @@ export default function ProfileScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: bottomInset + 80 }}
       >
         {/* Subscription Info */}
-        <View style={[styles.subCard, { backgroundColor: colors.primary }]}>
+        <View style={[styles.subCard, { overflow: "hidden", borderRadius: 20, marginBottom: 20 }]}>
           <LinearGradient
             colors={[colors.primary, "#1d4ed8"]}
             style={styles.subCardGradient}
@@ -253,7 +268,7 @@ export default function ProfileScreen() {
                   style={[
                     styles.upgradeBarFill,
                     {
-                      width: `${((subscription.freeQuestionsTotal - subscription.freeQuestionsUsed) / subscription.freeQuestionsTotal) * 100}%`,
+                      width: `${((subscription.freeQuestionsTotal - subscription.freeQuestionsUsed) / subscription.freeQuestionsTotal) * 100}%` as any,
                       backgroundColor: "rgba(255,255,255,0.7)",
                     },
                   ]}
@@ -390,11 +405,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  subCard: {
-    borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: 20,
-  },
+  subCard: {},
   subCardGradient: {
     padding: 16,
     gap: 12,

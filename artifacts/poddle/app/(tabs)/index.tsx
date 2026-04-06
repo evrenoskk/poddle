@@ -28,7 +28,7 @@ export default function HomeScreen() {
 
   const activePet = pets.find((p) => p.id === activePetId) ?? pets[0];
   const upcomingTasks = tasks
-    .filter((t) => !t.completed && t.petId === (activePet?.id ?? ""))
+    .filter((t) => !t.completed && t.petId === String(activePet?.id ?? ""))
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 3);
 

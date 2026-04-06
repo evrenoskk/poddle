@@ -88,7 +88,7 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   const topInset = insets.top + (Platform.OS === "web" ? 67 : 0);
-  const bottomInset = insets.bottom + (Platform.OS === "web" ? 34 : 0);
+  const bottomInset = Platform.OS === "web" ? 60 : insets.bottom;
 
   const activePet = pets.find((p) => p.id === activePetId) ?? pets[0];
 
@@ -272,11 +272,12 @@ export default function ChatScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === "ios" ? "padding" : "padding"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <FlatList
           ref={flatListRef}
+          style={{ flex: 1 }}
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <MessageBubble msg={item} colors={colors} />}
