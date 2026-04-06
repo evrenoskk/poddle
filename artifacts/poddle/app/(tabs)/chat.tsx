@@ -87,8 +87,9 @@ export default function ChatScreen() {
   const [showSub, setShowSub] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
+  const TAB_BAR_HEIGHT = 66;
   const topInset = insets.top + (Platform.OS === "web" ? 67 : 0);
-  const bottomInset = Platform.OS === "web" ? 60 : insets.bottom;
+  const bottomInset = Platform.OS === "web" ? 60 : TAB_BAR_HEIGHT;
 
   const activePet = pets.find((p) => p.id === activePetId) ?? pets[0];
 
