@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "jT2eiWq-NmbvpJ02XkUhu"
+uri = "file://artifacts/poddle/assets/images/icon.png"
+type = "image"
+title = "poddle mascot app icon"
+
+[[generated]]
+id = "FGywJe8svrO1ITKjDIstn"
+uri = "file://artifacts/poddle/assets/images/dog_placeholder.png"
+type = "image"
+title = "golden retriever placeholder"

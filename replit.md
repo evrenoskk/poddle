@@ -2,7 +2,7 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+pnpm workspace monorepo using TypeScript. Poddle - AI Pet Care mobile app.
 
 ## Stack
 
@@ -15,13 +15,45 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **Mobile**: Expo (React Native) with expo-router
+
+## Applications
+
+### Poddle - AI Pet Care (`artifacts/poddle/`)
+An AI-powered pet care companion mobile app.
+
+**Features:**
+- Home screen with active pet card, upcoming tasks, quick actions
+- AI Chat (Poddle AI) with veterinary counselor system prompt using GPT-5.2
+- Photo/video upload for visual analysis
+- Health tracking with health score ring animation
+- Task management (vaccinations, grooming, checkups, medications)
+- Nearby veterinarian listing with appointment booking
+- Freemium model: 5 free questions → $0.50/question or $9.99/month subscription
+- Pet profile management with photo support
+
+**Design:**
+- Clean white/blue theme matching reference screenshots
+- Blue primary (#2563EB) with green accent (#10B981)
+- Inter font family (400/500/600/700)
+- Animated health score ring (react-native-reanimated)
+- LinearGradient headers
+
+### API Server (`artifacts/api-server/`)
+Express 5 backend with:
+- `POST /api/poddle/chat` — Streaming AI chat with GPT-5.2, veterinary system prompt
+  - Accepts text, history, petContext, imageBase64
+  - Returns SSE stream
+- OpenAI integration via Replit AI Integrations
 
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks
+- `pnpm --filter @workspace/db run push` — push DB schema changes
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+## AI Integration
+Uses Replit AI Integrations (OpenAI) — no user API key required.
+Environment variables: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY`
