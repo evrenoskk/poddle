@@ -86,7 +86,7 @@ router.post("/chat", async (req, res) => {
     contents.push({ role: "user", parts: userParts });
 
     const stream = await ai.models.generateContentStream({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-2.5-flash",
       contents,
       config: {
         systemInstruction,

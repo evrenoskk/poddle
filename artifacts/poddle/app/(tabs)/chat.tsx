@@ -80,7 +80,7 @@ function MessageBubble({ msg, colors }: { msg: Msg; colors: ReturnType<typeof us
 export default function ChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { messages, addMessage, clearMessages, subscription, canAskQuestion, useQuestion, pets, activePetId } = useApp();
+  const { messages, addMessage, updateMessage, clearMessages, subscription, canAskQuestion, useQuestion, pets, activePetId } = useApp();
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<{ uri: string; type: "image" | "video" } | null>(null);
@@ -181,7 +181,7 @@ export default function ChatScreen() {
       const streamingMsg: Msg = {
         id: streamingMsgId,
         role: "assistant",
-        content: "...",
+        content: "▍",
         timestamp: new Date().toISOString(),
       };
       addMessage(streamingMsg);
@@ -201,6 +201,7 @@ export default function ChatScreen() {
               const parsed = JSON.parse(raw);
               if (parsed.content) {
                 fullContent += parsed.content;
+                updateMessage(streamingMsgId, fullContent + "▍");
               }
             } catch {
               // ignore parse errors

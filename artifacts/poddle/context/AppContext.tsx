@@ -62,6 +62,7 @@ type AppContextType = {
   updateTask: (task: Task) => void;
   deleteTask: (id: string) => void;
   addMessage: (message: ChatMessage) => void;
+  updateMessage: (id: string, content: string) => void;
   clearMessages: () => void;
   canAskQuestion: () => boolean;
   useQuestion: () => void;
@@ -241,6 +242,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [persistMessages]
   );
 
+  const updateMessage = useCallback(
+    (id: string, content: string) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, content } : m))
+      );
+    },
+    []
+  );
+
   const clearMessages = useCallback(() => {
     setMessages([]);
     AsyncStorage.removeItem(STORAGE_KEYS.MESSAGES);
@@ -282,6 +292,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateTask,
         deleteTask,
         addMessage,
+        updateMessage,
         clearMessages,
         canAskQuestion,
         useQuestion,
