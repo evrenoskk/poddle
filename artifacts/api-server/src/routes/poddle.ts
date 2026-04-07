@@ -71,39 +71,40 @@ router.post("/chat", async (req, res) => {
       systemInstruction += `\n\nEvcil hayvan bilgileri:\n${petContext}`;
     }
 
-    const historyParts = (history || []).map((h) => ({
-      role: h.role === "assistant" ? "model" : "user",
+    const historyContents = (history || []).map((h) => ({
+      role: h.role === "assistant" ? "model" : ("user" as "user" | "model"),
       parts: [{ text: h.content }],
     }));
 
-    const modelName = imageBase64
-      ? "gemini-2.5-flash-preview-04-17"
-      : "gemini-2.5-flash";
-
-    const genaiClient = ai.getGenerativeModel({
-      model: modelName,
-      systemInstruction,
-    });
-
-    const chat = genaiClient.startChat({ history: historyParts });
-
-    let messageParts: any[];
+    let currentParts: any[];
     if (imageBase64) {
       const imageData = imageBase64.includes(",")
         ? imageBase64.split(",")[1]
         : imageBase64;
-      messageParts = [
+      currentParts = [
         { text: message || "Bu fotoğraftaki hayvanı değerlendir." },
         { inlineData: { mimeType: "image/jpeg", data: imageData } },
       ];
     } else {
-      messageParts = [{ text: message }];
+      currentParts = [{ text: message }];
     }
 
-    const result = await chat.sendMessageStream(messageParts);
+    const contents = [
+      ...historyContents,
+      { role: "user" as const, parts: currentParts },
+    ];
 
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
+    const stream = await ai.models.generateContentStream({
+      model: "gemini-2.5-flash",
+      contents,
+      config: {
+        systemInstruction,
+        maxOutputTokens: 8192,
+      },
+    });
+
+    for await (const chunk of stream) {
+      const text = chunk.text;
       if (text) {
         res.write(`data: ${JSON.stringify({ text })}\n\n`);
       }
