@@ -16,15 +16,16 @@ type Props = {
 };
 
 function getScoreColor(score: number) {
-  if (score >= 80) return "#10B981";
-  if (score >= 60) return "#F59E0B";
-  return "#EF4444";
+  if (score >= 70) return "#10B981";
+  if (score >= 40) return "#F59E0B";
+  return "#94A3B8";
 }
 
 function getScoreLabel(score: number) {
-  if (score >= 80) return "Genel Durum İyi";
-  if (score >= 60) return "Genel Durum Orta";
-  return "Dikkat Gerekli";
+  if (score >= 70) return "Takip Düzenli";
+  if (score >= 40) return "Takip Orta";
+  if (score > 0) return "Takip Başlangıç";
+  return "Kayıt Bekleniyor";
 }
 
 export function HealthScoreRing({ score, size = 160 }: Props) {
@@ -43,14 +44,14 @@ export function HealthScoreRing({ score, size = 160 }: Props) {
   }));
 
   return (
-    <View style={[styles.container, { width: size, height: size }]}>
+    <View style={[styles.container, { width: size, height: size + 28 }]}>
       <Svg width={size} height={size}>
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           stroke={colors.border}
-          strokeWidth={12}
+          strokeWidth={10}
           fill="none"
         />
         <AnimatedCircle
@@ -58,7 +59,7 @@ export function HealthScoreRing({ score, size = 160 }: Props) {
           cy={size / 2}
           r={radius}
           stroke={scoreColor}
-          strokeWidth={12}
+          strokeWidth={10}
           fill="none"
           strokeDasharray={`${circumference} ${circumference}`}
           animatedProps={animatedProps}
@@ -67,17 +68,31 @@ export function HealthScoreRing({ score, size = 160 }: Props) {
           origin={`${size / 2}, ${size / 2}`}
         />
       </Svg>
-      <View style={styles.center}>
-        <Text style={[styles.score, { color: colors.foreground }]}>{score}</Text>
-        <Text style={[styles.outOf, { color: colors.mutedForeground }]}>/100</Text>
-        <Text style={[styles.label, { color: colors.mutedForeground }]}>PUAN</Text>
+
+      <View style={[styles.center, { width: size, height: size }]}>
+        <View style={styles.scoreRow}>
+          <Text style={[styles.score, { color: colors.foreground }]}>
+            {score}
+          </Text>
+          <Text style={[styles.outOf, { color: colors.mutedForeground }]}>
+            /100
+          </Text>
+        </View>
+        <Text style={[styles.label, { color: colors.mutedForeground }]}>
+          AKTİFLİK
+        </Text>
       </View>
-      <View style={[styles.badge, { backgroundColor: `${scoreColor}20` }]}>
+
+      <View style={[styles.badge, { backgroundColor: `${scoreColor}18` }]}>
         <View style={[styles.badgeDot, { backgroundColor: scoreColor }]} />
         <Text style={[styles.badgeText, { color: scoreColor }]}>
           {getScoreLabel(score)}
         </Text>
       </View>
+
+      <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
+        Kayıt düzenliliğinize göre hesaplanır
+      </Text>
     </View>
   );
 }
@@ -85,42 +100,43 @@ export function HealthScoreRing({ score, size = 160 }: Props) {
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   center: {
     position: "absolute",
+    top: 0,
+    left: 0,
     alignItems: "center",
-    flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "center",
   },
+  scoreRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
   score: {
-    fontSize: 32,
+    fontSize: 38,
     fontFamily: "Inter_700Bold",
-    lineHeight: 36,
+    lineHeight: 42,
   },
   outOf: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: "Inter_400Regular",
-    marginTop: 8,
+    marginBottom: 4,
     marginLeft: 2,
   },
   label: {
-    width: "100%",
-    textAlign: "center",
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1.5,
-    marginTop: -4,
+    letterSpacing: 2,
+    marginTop: 2,
   },
   badge: {
-    position: "absolute",
-    bottom: -8,
+    marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 20,
   },
   badgeDot: {
@@ -129,7 +145,13 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Inter_600SemiBold",
+  },
+  disclaimer: {
+    fontSize: 10,
+    fontFamily: "Inter_400Regular",
+    marginTop: 5,
+    opacity: 0.7,
   },
 });

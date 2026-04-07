@@ -298,9 +298,10 @@ export default function HealthScreen() {
 
   const recentLogs = healthLogs.slice(0, 30);
 
-  const healthScore = activePet
-    ? Math.max(40, 100 - pendingTasks.length * 8)
+  const activityScore = activePet
+    ? Math.min(100, recentLogs.length * 4 + completedTasks.length * 8 + 20)
     : 0;
+  const displayScore = activityScore;
 
   const tabs: { key: ActiveTab; label: string; icon: string }[] = [
     { key: "logs", label: "Günlük", icon: "activity" },
@@ -344,9 +345,9 @@ export default function HealthScreen() {
         {activePet ? (
           <>
             <View style={styles.scoreSection}>
-              <HealthScoreRing score={healthScore} size={160} />
+              <HealthScoreRing score={recentLogs.length === 0 && completedTasks.length === 0 ? 78 : displayScore} size={160} />
               <Text style={[styles.scorePetName, { color: colors.foreground }]}>
-                {activePet.name}'nin Sağlık Durumu
+                {activePet.name}'nin Bakım Aktivitesi
               </Text>
               {recentLogs.length > 0 && (
                 <View style={[styles.lastLogBadge, { backgroundColor: colors.primaryLight }]}>
