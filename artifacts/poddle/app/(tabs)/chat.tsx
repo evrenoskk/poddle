@@ -576,29 +576,34 @@ function SessionListView({
   petName: string;
   sessions: ChatSession[];
   onSelectSession: (session: ChatSession) => void;
-  onNewSession: (title: string, icon: string) => void;
+  onNewSession: () => void;
   onDeleteSession: (id: number) => void;
 }) {
-  const [showNew, setShowNew] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [selectedIcon, setSelectedIcon] = useState("message-circle");
   const TAB_BAR_HEIGHT = Platform.OS === "web" ? 84 : 66;
-  const topInset = insets.top + (Platform.OS === "web" ? 67 : 0);
-
-  const handleCreate = () => {
-    const title = newTitle.trim() || "Yeni Sohbet";
-    onNewSession(title, selectedIcon);
-    setNewTitle("");
-    setSelectedIcon("message-circle");
-    setShowNew(false);
-  };
 
   const confirmDelete = (id: number, title: string) => {
-    Alert.alert("Sohbeti Sil", `"${title}" sohbetini silmek istediğinden emin misin?`, [
-      { text: "İptal", style: "cancel" },
-      { text: "Sil", style: "destructive", onPress: () => onDeleteSession(id) },
-    ]);
+    if (Platform.OS === "web") {
+      if (confirm(`"${title}" sohbetini silmek istediğine emin misin?`)) {
+        onDeleteSession(id);
+      }
+    } else {
+      Alert.alert("Sohbeti Sil", `"${title}" sohbetini silmek istediğinden emin misin?`, [
+        { text: "İptal", style: "cancel" },
+        { text: "Sil", style: "destructive", onPress: () => onDeleteSession(id) },
+      ]);
+    }
   };
+
+  const todaySessions = sessions.filter((s) => {
+    const d = new Date(s.updatedAt);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  });
+  const olderSessions = sessions.filter((s) => {
+    const d = new Date(s.updatedAt);
+    const now = new Date();
+    return d.toDateString() !== now.toDateString();
+  });
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -608,48 +613,12 @@ function SessionListView({
         rightContent={
           <TouchableOpacity
             style={styles.newSessionBtn}
-            onPress={() => setShowNew(!showNew)}
+            onPress={onNewSession}
           >
-            <Feather name={showNew ? "x" : "plus"} size={18} color="#fff" />
+            <Feather name="edit-3" size={17} color="#fff" />
           </TouchableOpacity>
         }
-      >
-        {showNew && (
-          <View style={styles.newSessionForm}>
-            <TextInput
-              style={[styles.newSessionInput, { backgroundColor: "rgba(255,255,255,0.15)", color: "#fff" }]}
-              placeholder="Sohbet başlığı (ör: Aşı Takibi)"
-              placeholderTextColor="rgba(255,255,255,0.55)"
-              value={newTitle}
-              onChangeText={setNewTitle}
-              maxLength={60}
-              autoFocus
-            />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.iconPicker}>
-              {SESSION_ICONS.map((item) => (
-                <TouchableOpacity
-                  key={item.icon}
-                  style={[
-                    styles.iconOption,
-                    {
-                      backgroundColor: selectedIcon === item.icon ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.08)",
-                      borderColor: selectedIcon === item.icon ? "rgba(255,255,255,0.8)" : "transparent",
-                    },
-                  ]}
-                  onPress={() => setSelectedIcon(item.icon)}
-                >
-                  <Feather name={item.icon as any} size={16} color="#fff" />
-                  <Text style={styles.iconLabel}>{item.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <TouchableOpacity style={styles.createBtn} onPress={handleCreate}>
-              <Feather name="message-circle" size={16} color="#1d4ed8" />
-              <Text style={styles.createBtnText}>Sohbet Oluştur</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </SharedHeader>
+      />
 
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: TAB_BAR_HEIGHT + 16 }}
@@ -661,17 +630,17 @@ function SessionListView({
               <PodleLogo size={40} />
             </LinearGradient>
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-              Sohbet başlatmaya hazır mısın?
+              Merhaba, nasıl yardımcı olabilirim?
             </Text>
             <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
               {petName} hakkında soru sor, fotoğraf paylaş{"\n"}veya bakım planı oluştur.
             </Text>
             <TouchableOpacity
-              style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
-              onPress={() => setShowNew(true)}
+              style={[styles.newChatBtn, { backgroundColor: colors.primary }]}
+              onPress={onNewSession}
             >
-              <Feather name="plus" size={16} color="#fff" />
-              <Text style={styles.emptyBtnText}>İlk Sohbeti Başlat</Text>
+              <Feather name="edit-3" size={16} color="#fff" />
+              <Text style={styles.newChatBtnText}>Yeni Sohbet Başlat</Text>
             </TouchableOpacity>
 
             <View style={styles.featureList}>
@@ -694,33 +663,65 @@ function SessionListView({
           </View>
         ) : (
           <>
-            {sessions.map((session) => {
-              const iconData = SESSION_ICONS.find((i) => i.icon === session.icon) || SESSION_ICONS[0];
-              return (
-                <TouchableOpacity
-                  key={session.id}
-                  style={[styles.sessionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-                  onPress={() => onSelectSession(session)}
-                  onLongPress={() => confirmDelete(session.id, session.title)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.sessionCardIcon, { backgroundColor: iconData.color + "18" }]}>
-                    <Feather name={session.icon as any} size={20} color={iconData.color} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.sessionCardTitle, { color: colors.foreground }]} numberOfLines={1}>
-                      {session.title}
-                    </Text>
-                    <Text style={[styles.sessionCardDate, { color: colors.mutedForeground }]}>
-                      {formatSessionDate(session.updatedAt)}
-                    </Text>
-                  </View>
-                  <View style={[styles.sessionCardArrow, { backgroundColor: colors.muted }]}>
+            <TouchableOpacity
+              style={[styles.newChatBtn, { backgroundColor: colors.primary, marginBottom: 20 }]}
+              onPress={onNewSession}
+            >
+              <Feather name="edit-3" size={16} color="#fff" />
+              <Text style={styles.newChatBtnText}>Yeni Sohbet</Text>
+            </TouchableOpacity>
+
+            {todaySessions.length > 0 && (
+              <>
+                <Text style={[styles.sessionGroupLabel, { color: colors.mutedForeground }]}>BUGÜN</Text>
+                {todaySessions.map((session) => (
+                  <TouchableOpacity
+                    key={session.id}
+                    style={[styles.sessionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    onPress={() => onSelectSession(session)}
+                    onLongPress={() => confirmDelete(session.id, session.title)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.sessionCardDot, { backgroundColor: colors.primary }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.sessionCardTitle, { color: colors.foreground }]} numberOfLines={1}>
+                        {session.title}
+                      </Text>
+                      <Text style={[styles.sessionCardDate, { color: colors.mutedForeground }]}>
+                        {formatSessionDate(session.updatedAt)}
+                      </Text>
+                    </View>
                     <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
+
+            {olderSessions.length > 0 && (
+              <>
+                <Text style={[styles.sessionGroupLabel, { color: colors.mutedForeground, marginTop: todaySessions.length > 0 ? 16 : 0 }]}>ÖNCEKİ SOHBETLER</Text>
+                {olderSessions.map((session) => (
+                  <TouchableOpacity
+                    key={session.id}
+                    style={[styles.sessionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    onPress={() => onSelectSession(session)}
+                    onLongPress={() => confirmDelete(session.id, session.title)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.sessionCardDot, { backgroundColor: colors.mutedForeground + "40" }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.sessionCardTitle, { color: colors.foreground }]} numberOfLines={1}>
+                        {session.title}
+                      </Text>
+                      <Text style={[styles.sessionCardDate, { color: colors.mutedForeground }]}>
+                        {formatSessionDate(session.updatedAt)}
+                      </Text>
+                    </View>
+                    <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
           </>
         )}
       </ScrollView>
@@ -940,7 +941,6 @@ function ChatView({
       ? "∞"
       : String(Math.max(0, subscription.freeQuestionsTotal - subscription.freeQuestionsUsed));
 
-  const iconData = SESSION_ICONS.find((i) => i.icon === session.icon) || SESSION_ICONS[0];
   const hasContent = text.trim().length > 0 || selectedMedia !== null;
 
   return (
@@ -956,13 +956,9 @@ function ChatView({
           <Feather name="arrow-left" size={22} color="#fff" />
         </TouchableOpacity>
 
-        <View style={[styles.chatHeaderIconBg, { backgroundColor: iconData.color + "35" }]}>
-          <Feather name={session.icon as any} size={16} color="#fff" />
-        </View>
-
-        <View style={{ flex: 1, marginLeft: 10 }}>
+        <View style={{ flex: 1, marginLeft: 8 }}>
           <Text style={styles.chatHeaderTitle} numberOfLines={1}>
-            {session.title}
+            {session.title === "Yeni Sohbet" ? "Poddle AI" : session.title}
           </Text>
           <View style={styles.onlineBadge}>
             <View style={styles.onlineDot} />
@@ -974,12 +970,19 @@ function ChatView({
 
         <TouchableOpacity
           style={styles.clearBtn}
-          onPress={() =>
-            Alert.alert("Sohbeti Temizle", "Bu sohbetin mesajlarını silmek istiyor musun?", [
-              { text: "İptal", style: "cancel" },
-              { text: "Temizle", style: "destructive", onPress: () => { clearMessages(); titleUpdatedRef.current = false; } },
-            ])
-          }
+          onPress={() => {
+            if (Platform.OS === "web") {
+              if (confirm("Bu sohbetin mesajlarını silmek istiyor musun?")) {
+                clearMessages();
+                titleUpdatedRef.current = false;
+              }
+            } else {
+              Alert.alert("Sohbeti Temizle", "Bu sohbetin mesajlarını silmek istiyor musun?", [
+                { text: "İptal", style: "cancel" },
+                { text: "Temizle", style: "destructive", onPress: () => { clearMessages(); titleUpdatedRef.current = false; } },
+              ]);
+            }
+          }}
         >
           <Feather name="trash-2" size={16} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
@@ -1146,11 +1149,11 @@ export default function ChatScreen() {
   );
 
   const handleNewSession = useCallback(
-    async (title: string, icon: string) => {
+    async () => {
       const petId = activePetId ?? activePet?.id;
       if (!petId) return;
       try {
-        const session = await createSession(petId, title, icon);
+        const session = await createSession(petId, "Yeni Sohbet", "message-circle");
         setActiveSessionId(session.id);
       } catch {
         Alert.alert("Hata", "Sohbet oluşturulamadı.");
@@ -1214,41 +1217,29 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center", alignItems: "center",
   },
-  newSessionForm: { marginTop: 16, gap: 10 },
-  newSessionInput: {
-    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11,
-    fontSize: 15, fontFamily: "Inter_400Regular",
-  },
-  iconPicker: { flexDirection: "row" },
-  iconOption: {
-    alignItems: "center", paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 12, marginRight: 8, borderWidth: 1.5, gap: 4,
-  },
-  iconLabel: { color: "#fff", fontSize: 10, fontFamily: "Inter_600SemiBold" },
-  createBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-    backgroundColor: "#fff", borderRadius: 14, paddingVertical: 11,
-  },
-  createBtnText: { color: "#1d4ed8", fontSize: 15, fontFamily: "Inter_700Bold" },
 
+  newChatBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    paddingVertical: 14, borderRadius: 14,
+  },
+  newChatBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
+
+  sessionGroupLabel: {
+    fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 1,
+    marginBottom: 8,
+  },
   sessionCard: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 10,
+    padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 8,
   },
-  sessionCardIcon: { width: 46, height: 46, borderRadius: 14, justifyContent: "center", alignItems: "center" },
-  sessionCardTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
-  sessionCardDate: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  sessionCardArrow: { width: 30, height: 30, borderRadius: 10, justifyContent: "center", alignItems: "center" },
+  sessionCardDot: { width: 8, height: 8, borderRadius: 4 },
+  sessionCardTitle: { fontSize: 14, fontFamily: "Inter_500Medium", marginBottom: 2 },
+  sessionCardDate: { fontSize: 11, fontFamily: "Inter_400Regular" },
 
   emptyState: { flex: 1, alignItems: "center", paddingTop: 40, paddingHorizontal: 16 },
   emptyIconBg: { width: 100, height: 100, borderRadius: 50, justifyContent: "center", alignItems: "center", marginBottom: 20 },
   emptyTitle: { fontSize: 20, fontFamily: "Inter_700Bold", marginBottom: 8, textAlign: "center" },
   emptyDesc: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
-  emptyBtn: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    marginTop: 20, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14,
-  },
-  emptyBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
   featureList: { width: "100%", marginTop: 24, gap: 10 },
   featureItem: {
     flexDirection: "row", alignItems: "center", gap: 12,
@@ -1265,7 +1256,6 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 8,
   },
   backBtn: { padding: 4 },
-  chatHeaderIconBg: { width: 34, height: 34, borderRadius: 11, justifyContent: "center", alignItems: "center" },
   chatHeaderTitle: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#fff" },
   onlineBadge: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#6EE7B7" },

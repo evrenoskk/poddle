@@ -24,11 +24,13 @@ An AI-powered pet care companion mobile app.
 
 **Features:**
 - Home screen with active pet card, upcoming tasks, quick actions
-- AI Chat (Poddle AI) with veterinary counselor system prompt
+- AI Chat (Poddle AI) — ChatGPT/Gemini-like flow: auto-creates sessions, auto-titles from first message context, no manual forms
 - Photo/video upload for visual analysis
 - Health tracking with activity score ring (starts at 0, grows with logs/tasks)
 - Calendar tab with monthly view, task dots, and date-based task browsing
-- Task management (vaccinations, grooming, checkups, medications) — sub-tab under Calendar
+- Task management with 3 sub-tabs: Bekleyen (pending), Tamamlanan (completed), Randevular (appointments)
+  - Tasks can be rescheduled via date picker modal
+  - Completed tasks move to "Tamamlanan" tab and can be permanently deleted or unchecked
 - Nearby veterinarian listing with GPS + appointment booking — sub-tab under Calendar
 - Freemium model: 5 free questions → $0.50/question or $9.99/month subscription
 - Pet profile management with photo support

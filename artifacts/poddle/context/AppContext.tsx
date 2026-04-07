@@ -38,6 +38,7 @@ export type Task = {
   description: string;
   dueDate: string;
   completed: boolean;
+  completedAt?: string;
   reminderSet: boolean;
 };
 

@@ -27,7 +27,7 @@ const VETS = [
   { id: "3", name: "Florya Veteriner Merkezi", address: "Florya, Istanbul", phone: "0212 456 7890", rating: 4.9 },
 ];
 
-type SubTab = "tasks" | "appointments";
+type SubTab = "pending" | "completed" | "appointments";
 
 function getMonthDays(year: number, month: number) {
   const firstDay = new Date(year, month, 1).getDay();
@@ -46,12 +46,133 @@ const MONTH_NAMES = [
 ];
 const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 
+function RescheduleModal({
+  visible,
+  task,
+  onClose,
+  onSave,
+  colors,
+}: {
+  visible: boolean;
+  task: Task | null;
+  onClose: () => void;
+  onSave: (task: Task, newDate: string) => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const now = new Date();
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const { daysInMonth, offset } = getMonthDays(viewYear, viewMonth);
+  const todayKey = formatDateKey(now.getFullYear(), now.getMonth(), now.getDate());
+
+  React.useEffect(() => {
+    if (visible) {
+      setSelectedDay(null);
+      const n = new Date();
+      setViewYear(n.getFullYear());
+      setViewMonth(n.getMonth());
+    }
+  }, [visible]);
+
+  const handleSave = () => {
+    if (!task || selectedDay === null) return;
+    const newDate = formatDateKey(viewYear, viewMonth, selectedDay);
+    onSave(task, newDate);
+    setSelectedDay(null);
+    onClose();
+  };
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
+    else setViewMonth(viewMonth - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
+    else setViewMonth(viewMonth + 1);
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={reschedStyles.overlay}>
+        <View style={[reschedStyles.sheet, { backgroundColor: colors.background }]}>
+          <View style={reschedStyles.handle} />
+          <View style={reschedStyles.headerRow}>
+            <Text style={[reschedStyles.title, { color: colors.foreground }]}>Tarih Değiştir</Text>
+            <TouchableOpacity onPress={onClose} style={[reschedStyles.closeBtn, { backgroundColor: colors.muted }]}>
+              <Feather name="x" size={18} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+
+          {task && (
+            <View style={[reschedStyles.taskPreview, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[reschedStyles.taskTitle, { color: colors.foreground }]}>{task.title}</Text>
+              <Text style={[reschedStyles.taskDesc, { color: colors.mutedForeground }]}>{task.description}</Text>
+            </View>
+          )}
+
+          <View style={[reschedStyles.calBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={reschedStyles.calNav}>
+              <TouchableOpacity onPress={prevMonth}><Feather name="chevron-left" size={20} color={colors.foreground} /></TouchableOpacity>
+              <Text style={[reschedStyles.calMonth, { color: colors.foreground }]}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
+              <TouchableOpacity onPress={nextMonth}><Feather name="chevron-right" size={20} color={colors.foreground} /></TouchableOpacity>
+            </View>
+            <View style={reschedStyles.dayNamesRow}>
+              {DAY_NAMES.map((d) => (
+                <Text key={d} style={[reschedStyles.dayName, { color: colors.mutedForeground }]}>{d}</Text>
+              ))}
+            </View>
+            <View style={reschedStyles.daysGrid}>
+              {Array.from({ length: offset }).map((_, i) => <View key={`e-${i}`} style={reschedStyles.dayCell} />)}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const key = formatDateKey(viewYear, viewMonth, day);
+                const isToday = key === todayKey;
+                const isSelected = selectedDay === day;
+                return (
+                  <TouchableOpacity
+                    key={day}
+                    style={[
+                      reschedStyles.dayCell,
+                      isSelected && { backgroundColor: colors.primary, borderRadius: 10 },
+                      isToday && !isSelected && { backgroundColor: colors.primaryLight, borderRadius: 10 },
+                    ]}
+                    onPress={() => setSelectedDay(day)}
+                  >
+                    <Text style={[reschedStyles.dayText, { color: isSelected ? "#fff" : isToday ? colors.primary : colors.foreground }]}>
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[reschedStyles.saveBtn, { backgroundColor: selectedDay ? colors.primary : colors.muted }]}
+            onPress={handleSave}
+            disabled={!selectedDay}
+          >
+            <Feather name="calendar" size={16} color={selectedDay ? "#fff" : colors.mutedForeground} />
+            <Text style={[reschedStyles.saveBtnText, { color: selectedDay ? "#fff" : colors.mutedForeground }]}>
+              {selectedDay
+                ? `${selectedDay} ${MONTH_NAMES[viewMonth]} tarihine taşı`
+                : "Bir tarih seç"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function CalendarScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { tasks, updateTask, deleteTask, pets, activePetId } = useApp();
-  const [subTab, setSubTab] = useState<SubTab>("tasks");
+  const [subTab, setSubTab] = useState<SubTab>("pending");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [rescheduleTask, setRescheduleTask] = useState<Task | null>(null);
 
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -95,6 +216,29 @@ export default function CalendarScreen() {
   const selectedTasks = selectedDate ? (tasksByDate[selectedDate] || []) : [];
   const pendingTasks = petTasks.filter((t) => !t.completed);
   const completedTasks = petTasks.filter((t) => t.completed);
+
+  const handleReschedule = (task: Task, newDate: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    updateTask({ ...task, dueDate: newDate });
+  };
+
+  const handleToggleComplete = (task: Task) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    updateTask({ ...task, completed: !task.completed, completedAt: !task.completed ? new Date().toISOString() : undefined });
+  };
+
+  const confirmDelete = (id: string, title: string) => {
+    if (Platform.OS === "web") {
+      if (confirm(`"${title}" görevini kalıcı olarak silmek istediğine emin misin?`)) {
+        deleteTask(id);
+      }
+    } else {
+      Alert.alert("Görevi Sil", `"${title}" görevini kalıcı olarak silmek istediğine emin misin?`, [
+        { text: "İptal", style: "cancel" },
+        { text: "Sil", style: "destructive", onPress: () => deleteTask(id) },
+      ]);
+    }
+  };
 
   const findNearbyVets = async () => {
     try {
@@ -211,8 +355,9 @@ export default function CalendarScreen() {
                     <TaskCard
                       key={task.id}
                       task={task}
-                      onToggle={(t) => updateTask({ ...t, completed: !t.completed })}
-                      onDelete={deleteTask}
+                      onToggle={handleToggleComplete}
+                      onDelete={(id) => confirmDelete(id, task.title)}
+                      onReschedule={() => setRescheduleTask(task)}
                     />
                   ))
                 )}
@@ -221,7 +366,8 @@ export default function CalendarScreen() {
 
             <View style={[styles.subTabRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
               {([
-                { key: "tasks" as SubTab, label: "Görevler", icon: "check-square" },
+                { key: "pending" as SubTab, label: "Bekleyen", icon: "clock", count: pendingTasks.length },
+                { key: "completed" as SubTab, label: "Tamamlanan", icon: "check-circle", count: completedTasks.length },
                 { key: "appointments" as SubTab, label: "Randevular", icon: "map-pin" },
               ]).map((tab) => (
                 <TouchableOpacity
@@ -233,32 +379,64 @@ export default function CalendarScreen() {
                   <Text style={[styles.subTabText, { color: subTab === tab.key ? "#fff" : colors.mutedForeground }]}>
                     {tab.label}
                   </Text>
+                  {tab.count !== undefined && tab.count > 0 && (
+                    <View style={[styles.tabBadge, { backgroundColor: subTab === tab.key ? "rgba(255,255,255,0.3)" : colors.primary + "20" }]}>
+                      <Text style={[styles.tabBadgeText, { color: subTab === tab.key ? "#fff" : colors.primary }]}>{tab.count}</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
 
             <View style={styles.listSection}>
-              {subTab === "tasks" && (
+              {subTab === "pending" && (
                 <>
-                  {pendingTasks.length === 0 && completedTasks.length === 0 && (
+                  {pendingTasks.length === 0 && (
                     <View style={[styles.emptyBox, { borderColor: colors.border }]}>
-                      <Feather name="check-circle" size={32} color={colors.mutedForeground} />
+                      <View style={[styles.emptyIconCircle, { backgroundColor: colors.primaryLight }]}>
+                        <Feather name="check-circle" size={28} color={colors.primary} />
+                      </View>
+                      <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Tüm görevler tamamlandı!</Text>
                       <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                        Görev yok. AI sohbetten görev oluşturabilirsiniz.
+                        AI sohbetten yeni görev oluşturabilirsin.
                       </Text>
                     </View>
                   )}
                   {pendingTasks.map((task) => (
-                    <TaskCard key={task.id} task={task} onToggle={(t) => updateTask({ ...t, completed: true })} onDelete={deleteTask} />
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onToggle={handleToggleComplete}
+                      onDelete={(id) => confirmDelete(id, task.title)}
+                      onReschedule={() => setRescheduleTask(task)}
+                    />
                   ))}
-                  {completedTasks.length > 0 && (
-                    <>
-                      <Text style={[styles.completedTitle, { color: colors.mutedForeground }]}>Tamamlananlar</Text>
-                      {completedTasks.map((task) => (
-                        <TaskCard key={task.id} task={task} onToggle={(t) => updateTask({ ...t, completed: false })} onDelete={deleteTask} />
-                      ))}
-                    </>
+                </>
+              )}
+
+              {subTab === "completed" && (
+                <>
+                  {completedTasks.length === 0 && (
+                    <View style={[styles.emptyBox, { borderColor: colors.border }]}>
+                      <View style={[styles.emptyIconCircle, { backgroundColor: "#D1FAE520" }]}>
+                        <Feather name="inbox" size={28} color={colors.mutedForeground} />
+                      </View>
+                      <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Tamamlanan görev yok</Text>
+                      <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                        Görevleri tamamladıkça burada görünecek.
+                      </Text>
+                    </View>
                   )}
+                  {completedTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onToggle={handleToggleComplete}
+                      onDelete={(id) => confirmDelete(id, task.title)}
+                      onReschedule={() => setRescheduleTask(task)}
+                      showDeleteButton
+                    />
+                  ))}
                 </>
               )}
 
@@ -313,9 +491,46 @@ export default function CalendarScreen() {
           </View>
         )}
       </ScrollView>
+
+      <RescheduleModal
+        visible={!!rescheduleTask}
+        task={rescheduleTask}
+        onClose={() => setRescheduleTask(null)}
+        onSave={handleReschedule}
+        colors={colors}
+      />
     </View>
   );
 }
+
+const reschedStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  sheet: {
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingHorizontal: 20, paddingTop: 10, paddingBottom: 30,
+    maxHeight: "85%",
+  },
+  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#D1D5DB", alignSelf: "center", marginBottom: 14 },
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
+  title: { fontSize: 18, fontFamily: "Inter_700Bold" },
+  closeBtn: { width: 32, height: 32, borderRadius: 16, justifyContent: "center", alignItems: "center" },
+  taskPreview: { padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 16 },
+  taskTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", marginBottom: 3 },
+  taskDesc: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  calBox: { borderRadius: 16, borderWidth: 1, padding: 12, marginBottom: 16 },
+  calNav: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  calMonth: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  dayNamesRow: { flexDirection: "row", marginBottom: 4 },
+  dayName: { flex: 1, textAlign: "center", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  daysGrid: { flexDirection: "row", flexWrap: "wrap" },
+  dayCell: { width: "14.28%", alignItems: "center", paddingVertical: 6 },
+  dayText: { fontSize: 14, fontFamily: "Inter_500Medium" },
+  saveBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    paddingVertical: 14, borderRadius: 14,
+  },
+  saveBtnText: { fontSize: 15, fontFamily: "Inter_700Bold" },
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -411,10 +626,47 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 5,
   },
-  subTabText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  subTabText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  tabBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  tabBadgeText: { fontSize: 10, fontFamily: "Inter_700Bold" },
 
   listSection: {
     paddingHorizontal: 16,
+  },
+
+  emptyBox: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 28,
+    alignItems: "center",
+    gap: 10,
+    borderStyle: "dashed",
+  },
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 20,
   },
 
   findVetBtn: {
@@ -470,27 +722,6 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
 
-  completedTitle: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-    marginTop: 12,
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  emptyBox: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 28,
-    alignItems: "center",
-    gap: 12,
-    borderStyle: "dashed",
-  },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    lineHeight: 20,
-  },
   noPetBox: {
     flex: 1,
     alignItems: "center",

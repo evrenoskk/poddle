@@ -9,6 +9,8 @@ type Props = {
   task: Task;
   onToggle: (task: Task) => void;
   onDelete: (id: string) => void;
+  onReschedule?: () => void;
+  showDeleteButton?: boolean;
 };
 
 function getTaskIcon(type: Task["type"], color: string) {
@@ -60,7 +62,7 @@ function getDueDateLabel(dueDate: string) {
   return due.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
 }
 
-export function TaskCard({ task, onToggle, onDelete }: Props) {
+export function TaskCard({ task, onToggle, onDelete, onReschedule, showDeleteButton }: Props) {
   const colors = useColors();
   const taskColor = getTaskColor(task.type);
   const taskBg = getTaskBg(task.type);
@@ -80,7 +82,7 @@ export function TaskCard({ task, onToggle, onDelete }: Props) {
       </View>
 
       <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.foreground, textDecorationLine: task.completed ? "line-through" : "none" }]}>
+        <Text style={[styles.title, { color: colors.foreground, textDecorationLine: task.completed ? "line-through" : "none", opacity: task.completed ? 0.6 : 1 }]}>
           {task.title}
         </Text>
         <Text style={[styles.desc, { color: colors.mutedForeground }]} numberOfLines={1}>
@@ -92,28 +94,42 @@ export function TaskCard({ task, onToggle, onDelete }: Props) {
         <View style={[
           styles.badge,
           {
-            backgroundColor: isOverdue ? "#FEE2E2" : isToday ? "#D1FAE5" : "#F1F5F9",
+            backgroundColor: task.completed ? "#D1FAE5" : isOverdue ? "#FEE2E2" : isToday ? "#D1FAE5" : "#F1F5F9",
           }
         ]}>
           <Text style={[
             styles.badgeText,
-            { color: isOverdue ? "#EF4444" : isToday ? "#10B981" : "#64748B" }
+            { color: task.completed ? "#10B981" : isOverdue ? "#EF4444" : isToday ? "#10B981" : "#64748B" }
           ]}>
-            {getDueDateLabel(task.dueDate)}
+            {task.completed ? "Tamamlandı" : getDueDateLabel(task.dueDate)}
           </Text>
         </View>
 
-        <TouchableOpacity onPress={handleToggle} style={styles.checkBtn}>
-          <View style={[
-            styles.check,
-            {
-              borderColor: task.completed ? taskColor : colors.border,
-              backgroundColor: task.completed ? taskColor : "transparent",
-            }
-          ]}>
-            {task.completed && <Feather name="check" size={12} color="#fff" />}
-          </View>
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          {onReschedule && !task.completed && (
+            <TouchableOpacity onPress={onReschedule} style={styles.actionBtn}>
+              <Feather name="calendar" size={14} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          )}
+
+          {showDeleteButton && (
+            <TouchableOpacity onPress={() => onDelete(task.id)} style={styles.actionBtn}>
+              <Feather name="trash-2" size={14} color="#EF4444" />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity onPress={handleToggle} style={styles.checkBtn}>
+            <View style={[
+              styles.check,
+              {
+                borderColor: task.completed ? taskColor : colors.border,
+                backgroundColor: task.completed ? taskColor : "transparent",
+              }
+            ]}>
+              {task.completed && <Feather name="check" size={12} color="#fff" />}
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -150,7 +166,7 @@ const styles = StyleSheet.create({
   },
   right: {
     alignItems: "flex-end",
-    gap: 8,
+    gap: 6,
   },
   badge: {
     paddingHorizontal: 8,
@@ -160,6 +176,18 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
+  },
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  actionBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
   },
   checkBtn: {
     padding: 2,
