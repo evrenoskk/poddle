@@ -27,7 +27,6 @@ export default function SignupScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPass, setShowPass] = useState(false);
-  const [focused, setFocused] = useState<string | null>(null);
 
   const emailRef = useRef<TextInput>(null);
   const passRef = useRef<TextInput>(null);
@@ -75,32 +74,27 @@ export default function SignupScreen() {
 
   const safeTop = insets.top + (Platform.OS === "web" ? 0 : 16);
 
-  function inputBox(field: string) {
-    return [styles.inputBox, focused === field && styles.inputBoxFocused];
-  }
-
   return (
-    <View style={styles.root}>
-      <LinearGradient
-        colors={["#0f172a", "#1e3a8a", "#2563eb"]}
-        locations={[0, 0.45, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={[styles.decorCircle1, { top: safeTop + 60 }]} />
-      <View style={[styles.decorCircle2, { top: safeTop + 10 }]} />
+    <LinearGradient
+      colors={["#0f172a", "#1e3a8a", "#2563eb"]}
+      locations={[0, 0.45, 1]}
+      style={styles.root}
+    >
+      <View pointerEvents="none" style={[styles.decorCircle1, { top: safeTop + 60 }]} />
+      <View pointerEvents="none" style={[styles.decorCircle2, { top: safeTop + 10 }]} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={0}
       >
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="none"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          {/* Back button */}
           <TouchableOpacity
             style={[styles.backBtn, { top: safeTop + 12 }]}
             onPress={() => router.back()}
@@ -108,13 +102,11 @@ export default function SignupScreen() {
             <Feather name="arrow-left" size={20} color="rgba(255,255,255,0.8)" />
           </TouchableOpacity>
 
-          {/* Hero */}
           <View style={[styles.hero, { paddingTop: safeTop + 52 }]}>
             <Text style={styles.brandName}>Poddle</Text>
             <Text style={styles.brandSub}>Hesabını oluştur, ücretsiz başla</Text>
           </View>
 
-          {/* Card */}
           <Animated.View style={[styles.card, { transform: [{ translateX: shakeAnim }] }]}>
             <Text style={styles.cardTitle}>Kayıt Ol</Text>
 
@@ -125,7 +117,6 @@ export default function SignupScreen() {
               </View>
             ) : null}
 
-            {/* Free badge */}
             <View style={styles.freeBadge}>
               <View style={styles.freeIconBox}>
                 <Feather name="gift" size={14} color="#2563eb" />
@@ -133,66 +124,60 @@ export default function SignupScreen() {
               <Text style={styles.freeText}>5 ücretsiz AI danışma sorusu ile başla</Text>
             </View>
 
-            {/* Name */}
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>Ad Soyad</Text>
-              <View style={inputBox("name")}>
-                <Feather name="user" size={16} color={focused === "name" ? "#2563eb" : "#9CA3AF"} style={styles.inputIcon} />
+              <View style={styles.inputBox}>
+                <Feather name="user" size={16} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Adın Soyadın"
                   placeholderTextColor="#C4C4CC"
                   value={name}
-                  onChangeText={(t) => { setName(t); setError(null); }}
+                  onChangeText={setName}
                   autoCapitalize="words"
                   returnKeyType="next"
                   onSubmitEditing={() => emailRef.current?.focus()}
-                  onFocus={() => setFocused("name")}
-                  onBlur={() => setFocused(null)}
+                  blurOnSubmit={false}
                 />
               </View>
             </View>
 
-            {/* Email */}
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>E-posta</Text>
-              <View style={inputBox("email")}>
-                <Feather name="mail" size={16} color={focused === "email" ? "#2563eb" : "#9CA3AF"} style={styles.inputIcon} />
+              <View style={styles.inputBox}>
+                <Feather name="mail" size={16} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   ref={emailRef}
                   style={styles.input}
                   placeholder="ornek@email.com"
                   placeholderTextColor="#C4C4CC"
                   value={email}
-                  onChangeText={(t) => { setEmail(t); setError(null); }}
+                  onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="next"
                   onSubmitEditing={() => passRef.current?.focus()}
-                  onFocus={() => setFocused("email")}
-                  onBlur={() => setFocused(null)}
+                  blurOnSubmit={false}
                 />
               </View>
             </View>
 
-            {/* Password */}
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>Şifre</Text>
-              <View style={inputBox("pass")}>
-                <Feather name="lock" size={16} color={focused === "pass" ? "#2563eb" : "#9CA3AF"} style={styles.inputIcon} />
+              <View style={styles.inputBox}>
+                <Feather name="lock" size={16} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   ref={passRef}
-                  style={[styles.input, { flex: 1 }]}
+                  style={styles.input}
                   placeholder="En az 6 karakter"
                   placeholderTextColor="#C4C4CC"
                   value={password}
-                  onChangeText={(t) => { setPassword(t); setError(null); }}
+                  onChangeText={setPassword}
                   secureTextEntry={!showPass}
                   returnKeyType="next"
                   onSubmitEditing={() => pass2Ref.current?.focus()}
-                  onFocus={() => setFocused("pass")}
-                  onBlur={() => setFocused(null)}
+                  blurOnSubmit={false}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPass((v) => !v)}
@@ -204,28 +189,24 @@ export default function SignupScreen() {
               </View>
             </View>
 
-            {/* Confirm Password */}
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>Şifre Tekrar</Text>
-              <View style={inputBox("pass2")}>
-                <Feather name="lock" size={16} color={focused === "pass2" ? "#2563eb" : "#9CA3AF"} style={styles.inputIcon} />
+              <View style={styles.inputBox}>
+                <Feather name="lock" size={16} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   ref={pass2Ref}
-                  style={[styles.input, { flex: 1 }]}
+                  style={styles.input}
                   placeholder="Şifreni tekrar gir"
                   placeholderTextColor="#C4C4CC"
                   value={password2}
-                  onChangeText={(t) => { setPassword2(t); setError(null); }}
+                  onChangeText={setPassword2}
                   secureTextEntry={!showPass}
                   returnKeyType="done"
                   onSubmitEditing={handleSignup}
-                  onFocus={() => setFocused("pass2")}
-                  onBlur={() => setFocused(null)}
                 />
               </View>
             </View>
 
-            {/* Signup button */}
             <TouchableOpacity
               onPress={handleSignup}
               disabled={loading}
@@ -249,7 +230,6 @@ export default function SignupScreen() {
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* Login link */}
             <TouchableOpacity
               onPress={() => router.push("/login")}
               style={styles.loginLink}
@@ -271,14 +251,13 @@ export default function SignupScreen() {
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#0f172a",
   },
   decorCircle1: {
     position: "absolute",
@@ -331,10 +310,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.25,
-    shadowRadius: 40,
     elevation: 16,
   },
   cardTitle: {
@@ -408,14 +383,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 50,
   },
-  inputBoxFocused: {
-    borderColor: "#2563eb",
-    backgroundColor: "#EFF6FF",
-    shadowColor: "#2563eb",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-  },
   inputIcon: {
     marginRight: 10,
   },
@@ -424,7 +391,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#0f172a",
     fontFamily: "Inter_400Regular",
-    height: "100%",
+    height: 50,
+    paddingVertical: 0,
   },
   eyeBtn: {
     padding: 4,
@@ -434,10 +402,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#2563eb",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
     elevation: 8,
   },
   btn: {

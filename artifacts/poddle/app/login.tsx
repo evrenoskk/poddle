@@ -26,8 +26,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPass, setShowPass] = useState(false);
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [passFocused, setPassFocused] = useState(false);
   const passRef = useRef<TextInput>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
@@ -63,29 +61,26 @@ export default function LoginScreen() {
   const safeTop = insets.top + (Platform.OS === "web" ? 0 : 20);
 
   return (
-    <View style={styles.root}>
-      <LinearGradient
-        colors={["#0f172a", "#1e3a8a", "#2563eb"]}
-        locations={[0, 0.45, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Decorative circles */}
-      <View style={[styles.decorCircle1, { top: safeTop + 80 }]} />
-      <View style={[styles.decorCircle2, { top: safeTop + 20 }]} />
+    <LinearGradient
+      colors={["#0f172a", "#1e3a8a", "#2563eb"]}
+      locations={[0, 0.45, 1]}
+      style={styles.root}
+    >
+      <View pointerEvents="none" style={[styles.decorCircle1, { top: safeTop + 80 }]} />
+      <View pointerEvents="none" style={[styles.decorCircle2, { top: safeTop + 20 }]} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={0}
       >
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="none"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          {/* Hero section */}
           <View style={[styles.hero, { paddingTop: safeTop + 48 }]}>
             <View style={styles.logoWrap}>
               <PodleLogo size={80} />
@@ -94,7 +89,6 @@ export default function LoginScreen() {
             <Text style={styles.brandSub}>AI destekli evcil hayvan asistanın</Text>
           </View>
 
-          {/* Card */}
           <Animated.View style={[styles.card, { transform: [{ translateX: shakeAnim }] }]}>
             <Text style={styles.cardTitle}>Hoş geldin</Text>
             <Text style={styles.cardSub}>Hesabına giriş yap</Text>
@@ -106,45 +100,40 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
-            {/* Email */}
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>E-posta</Text>
-              <View style={[styles.inputBox, emailFocused && styles.inputBoxFocused]}>
-                <Feather name="mail" size={16} color={emailFocused ? "#2563eb" : "#9CA3AF"} style={styles.inputIcon} />
+              <View style={styles.inputBox}>
+                <Feather name="mail" size={16} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="ornek@email.com"
                   placeholderTextColor="#C4C4CC"
                   value={email}
-                  onChangeText={(t) => { setEmail(t); setError(null); }}
+                  onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="next"
                   onSubmitEditing={() => passRef.current?.focus()}
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => setEmailFocused(false)}
+                  blurOnSubmit={false}
                 />
               </View>
             </View>
 
-            {/* Password */}
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>Şifre</Text>
-              <View style={[styles.inputBox, passFocused && styles.inputBoxFocused]}>
-                <Feather name="lock" size={16} color={passFocused ? "#2563eb" : "#9CA3AF"} style={styles.inputIcon} />
+              <View style={styles.inputBox}>
+                <Feather name="lock" size={16} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   ref={passRef}
-                  style={[styles.input, { flex: 1 }]}
+                  style={styles.input}
                   placeholder="••••••••"
                   placeholderTextColor="#C4C4CC"
                   value={password}
-                  onChangeText={(t) => { setPassword(t); setError(null); }}
+                  onChangeText={setPassword}
                   secureTextEntry={!showPass}
                   returnKeyType="done"
                   onSubmitEditing={handleLogin}
-                  onFocus={() => setPassFocused(true)}
-                  onBlur={() => setPassFocused(false)}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPass((v) => !v)}
@@ -160,7 +149,6 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {/* Login button */}
             <TouchableOpacity
               onPress={handleLogin}
               disabled={loading}
@@ -181,14 +169,12 @@ export default function LoginScreen() {
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* Divider */}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>ya da</Text>
               <View style={styles.dividerLine} />
             </View>
 
-            {/* Sign up */}
             <TouchableOpacity
               onPress={() => router.push("/signup")}
               style={styles.secondaryBtn}
@@ -207,14 +193,13 @@ export default function LoginScreen() {
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#0f172a",
   },
   decorCircle1: {
     position: "absolute",
@@ -238,11 +223,6 @@ const styles = StyleSheet.create({
   },
   logoWrap: {
     marginBottom: 20,
-    shadowColor: "#2563eb",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    elevation: 10,
   },
   brandName: {
     fontSize: 34,
@@ -265,10 +245,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 28,
     paddingBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.25,
-    shadowRadius: 40,
     elevation: 16,
   },
   cardTitle: {
@@ -320,16 +296,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#F8FAFC",
     paddingHorizontal: 14,
-    paddingVertical: 0,
     height: 52,
-  },
-  inputBoxFocused: {
-    borderColor: "#2563eb",
-    backgroundColor: "#EFF6FF",
-    shadowColor: "#2563eb",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
   },
   inputIcon: {
     marginRight: 10,
@@ -339,7 +306,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#0f172a",
     fontFamily: "Inter_400Regular",
-    height: "100%",
+    height: 52,
+    paddingVertical: 0,
   },
   eyeBtn: {
     padding: 4,
@@ -349,10 +317,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#2563eb",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
     elevation: 8,
   },
   btn: {
