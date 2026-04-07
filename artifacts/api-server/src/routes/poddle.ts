@@ -6,37 +6,51 @@ const router = Router();
 const SYSTEM_PROMPT = `Sen Poddle'nin yapay zeka veteriner danışmanısın. Adın Poddle.
 
 ## ROLÜN
-- Veteriner danışmanı olarak davran — doktor değil, danışman. Teşhis koyamazsın.
-- Hayvan sahiplerine sağlık, bakım, beslenme ve davranış konularında bilgi ver.
-- Görsel/fotoğraf analiz edildiğinde görsel özellikleri açıkla.
-- Ciddi belirtilerde mutlaka veterinere yönlendir.
+Veteriner danışmanı olarak davran — doktor değil, danışman. Teşhis koyamazsın, reçete yazamazsın. Sıcak, kısa ve net konuş. Kullanıcıyı uzun metinle boğma.
 
-## ÇIKTI FORMATI
-Her yanıtı MUTLAKA aşağıdaki markdown yapısında üret:
+## YANIT TARZI
+- **Kısa ve odaklı**: Her bölüm maksimum 2-3 cümle veya 3 madde.
+- **Emoji kullan**: Okunabilirliği artırır.
+- **Konuşma dili**: Resmi değil, sıcak ve doğal.
+- Ciddi durumda kısa bir uyarı ver ve veterinere yönlendir.
 
-### 🔍 Değerlendirme
-[Durumu kısaca değerlendir, 1-2 cümle]
+## ÇIKTI FORMATI (kısa tut)
 
-### 🩺 Olası Nedenler
-- **[Neden 1]**: [Açıklama]
-- **[Neden 2]**: [Açıklama]
-- **[Neden 3]**: [Açıklama]
+**🔍 Değerlendirme**
+[1-2 cümle — ne görüyorsun]
 
-### ✅ Önerilen Adımlar
-1. [İlk adım]
-2. [İkinci adım]
-3. [Üçüncü adım]
+**🩺 Olası Nedenler**
+- [Neden 1]
+- [Neden 2]
 
-[Ciddi durumlarda blockquote formatında uyarı ekle:]
-> ⚠️ **Veteriner Uyarısı**: [Açıklama ve ne zaman gidilmeli]
+**✅ Ne yapmalısın**
+- [Adım 1]
+- [Adım 2]
+
+> ⚠️ [Sadece gerçekten ciddi durumda ekle — 1 cümle max]
+
+## GÖREV ÖNERİSİ
+Eğer kullanıcıya bir hatırlatıcı veya randevu oluşturmayı önermek istersen, yanıtının sonuna şu formatı ekle (birden fazla olabilir):
+
+[GÖREV:başlık:YYYY-MM-DD:açıklama:type]
+
+type değerleri: vaccination, grooming, checkup, medication, other
+
+Örnek:
+[GÖREV:Karma Aşı:2026-10-15:Buddy'nin yıllık karma aşısı:vaccination]
+[GÖREV:Tırnak Bakımı:2026-04-20:Aylık tırnak kesimi:grooming]
+
+## SAĞLIK GEÇMİŞİ KULLANIMI
+Evcil hayvanın sağlık kayıtları sana verilecek. Bu kayıtlara dayanarak:
+- Bir sonraki aşı veya bakım tarihini tahmin et
+- Geçen süreye göre öneri sun
+- Görev oluşturmayı teklif et
 
 ## KURALLAR
-- Türkçe yaz, sıcak ve anlayışlı ol.
-- Teknik terimleri basit dille açıkla.
+- Türkçe yaz.
 - "Ben bir veterinerim" deme.
 - Kesin tanı koyma.
-- Reçete yazma.
-- Markdown formatını ASLA atlama — her yanıt yapılandırılmış olmalı.`;
+- Yanıtı 300 kelimeyi geçme (görsel analizde 400 max).`;
 
 router.post("/chat", async (req, res) => {
   const { message, petContext, history, imageBase64 } = req.body as {
@@ -52,70 +66,57 @@ router.post("/chat", async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   try {
-    // Build system context
     let systemInstruction = SYSTEM_PROMPT;
     if (petContext) {
-      systemInstruction += `\n\nEvcil hayvan bilgileri: ${petContext}`;
+      systemInstruction += `\n\nEvcil hayvan bilgileri:\n${petContext}`;
     }
 
-    // Build conversation history in Gemini format
-    type GeminiPart = { text: string } | { inlineData: { mimeType: string; data: string } };
-    type GeminiContent = { role: "user" | "model"; parts: GeminiPart[] };
+    const historyParts = (history || []).map((h) => ({
+      role: h.role === "assistant" ? "model" : "user",
+      parts: [{ text: h.content }],
+    }));
 
-    const contents: GeminiContent[] = [];
+    const modelName = imageBase64
+      ? "gemini-2.5-flash-preview-04-17"
+      : "gemini-2.5-flash";
 
-    if (history && history.length > 0) {
-      for (const h of history.slice(-8)) {
-        contents.push({
-          role: h.role === "assistant" ? "model" : "user",
-          parts: [{ text: h.content }],
-        });
-      }
-    }
+    const genaiClient = ai.getGenerativeModel({
+      model: modelName,
+      systemInstruction,
+    });
 
-    // Build current user message parts
-    const userParts: GeminiPart[] = [];
+    const chat = genaiClient.startChat({ history: historyParts });
 
+    let messageParts: any[];
     if (imageBase64) {
-      userParts.push({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: imageBase64,
-        },
-      });
+      const imageData = imageBase64.includes(",")
+        ? imageBase64.split(",")[1]
+        : imageBase64;
+      messageParts = [
+        { text: message || "Bu fotoğraftaki hayvanı değerlendir." },
+        { inlineData: { mimeType: "image/jpeg", data: imageData } },
+      ];
+    } else {
+      messageParts = [{ text: message }];
     }
 
-    userParts.push({
-      text: message || (imageBase64
-        ? "Bu görselde ne görüyorsun? Evcil hayvanımın durumu hakkında ne düşünüyorsun?"
-        : "Merhaba"),
-    });
+    const result = await chat.sendMessageStream(messageParts);
 
-    contents.push({ role: "user", parts: userParts });
-
-    const model = imageBase64 ? "gemini-3.1-pro-preview" : "gemini-2.5-flash";
-
-    const stream = await ai.models.generateContentStream({
-      model,
-      contents,
-      config: {
-        systemInstruction,
-        maxOutputTokens: 8192,
-      },
-    });
-
-    for await (const chunk of stream) {
-      const text = chunk.text;
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
       if (text) {
-        res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+        res.write(`data: ${JSON.stringify({ text })}\n\n`);
       }
     }
 
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    res.write("data: [DONE]\n\n");
+    res.end();
   } catch (err: any) {
-    req.log?.error({ err }, "Gemini chat error");
-    res.write(`data: ${JSON.stringify({ error: "AI yanıt hatası: " + (err?.message ?? "bilinmeyen hata") })}\n\n`);
-  } finally {
+    console.error("Poddle chat error:", err);
+    res.write(
+      `data: ${JSON.stringify({ text: "Bağlantı hatası oluştu. Lütfen tekrar deneyin." })}\n\n`
+    );
+    res.write("data: [DONE]\n\n");
     res.end();
   }
 });
