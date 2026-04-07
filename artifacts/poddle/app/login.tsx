@@ -2,7 +2,6 @@ import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -69,18 +68,14 @@ export default function LoginScreen() {
       <View pointerEvents="none" style={[styles.decorCircle1, { top: safeTop + 80 }]} />
       <View pointerEvents="none" style={[styles.decorCircle2, { top: safeTop + 20 }]} />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={0}
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="none"
+        automaticallyAdjustKeyboardInsets
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="always"
-          keyboardDismissMode="none"
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
           <View style={[styles.hero, { paddingTop: safeTop + 48 }]}>
             <View style={styles.logoWrap}>
               <PodleLogo size={80} />
@@ -191,8 +186,7 @@ export default function LoginScreen() {
             <Text style={styles.termsLink}>Gizlilik Politikası</Text>
             {"\n"}kabul edilmiş sayılırsınız.
           </Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </LinearGradient>
   );
 }

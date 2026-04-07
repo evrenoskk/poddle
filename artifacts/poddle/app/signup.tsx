@@ -2,7 +2,6 @@ import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -83,18 +82,14 @@ export default function SignupScreen() {
       <View pointerEvents="none" style={[styles.decorCircle1, { top: safeTop + 60 }]} />
       <View pointerEvents="none" style={[styles.decorCircle2, { top: safeTop + 10 }]} />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={0}
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="none"
+        automaticallyAdjustKeyboardInsets
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="always"
-          keyboardDismissMode="none"
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
           <TouchableOpacity
             style={[styles.backBtn, { top: safeTop + 12 }]}
             onPress={() => router.back()}
@@ -249,8 +244,7 @@ export default function SignupScreen() {
             <Text style={styles.termsLink}>Gizlilik Politikası</Text>
             {"'nı kabul etmiş sayılırsınız."}
           </Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </LinearGradient>
   );
 }
