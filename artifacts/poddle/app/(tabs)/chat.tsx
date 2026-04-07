@@ -64,6 +64,30 @@ function parseVetAppointment(raw: string): { clean: string; vet: VetAppointment 
   return { clean, vet };
 }
 
+function suggestedDate(urgency: VetAppointment["urgency"]): string {
+  const d = new Date();
+  if (urgency === "acil") {
+    // today
+  } else if (urgency === "bu_hafta") {
+    d.setDate(d.getDate() + 3);
+  } else {
+    d.setDate(d.getDate() + 14);
+  }
+  return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
+function suggestedDateShort(urgency: VetAppointment["urgency"]): string {
+  const d = new Date();
+  if (urgency === "acil") {
+    // today
+  } else if (urgency === "bu_hafta") {
+    d.setDate(d.getDate() + 3);
+  } else {
+    d.setDate(d.getDate() + 14);
+  }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function parseTasksFromContent(raw: string): { clean: string; tasks: ParsedTask[] } {
   const tasks: ParsedTask[] = [];
   const taskRegex = /\[GÖREV:([^:\]]+):([^:\]]+):([^:\]]+):([^\]]+)\]/g;
@@ -89,19 +113,24 @@ function parseAllMarkers(raw: string): { clean: string; tasks: ParsedTask[]; vet
 function VetAppointmentCard({
   vet,
   colors,
+  onSaveTask,
 }: {
   vet: VetAppointment;
   colors: ReturnType<typeof useColors>;
+  onSaveTask?: (task: ParsedTask) => void;
 }) {
   const [step, setStep] = useState<"idle" | "locating" | "done">("idle");
   const [locationError, setLocationError] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const urgencyConfig = {
-    acil: { label: "🚨 Acil — Bugün Git", color: "#EF4444", bg: "#FEF2F2", border: "#FCA5A5" },
-    bu_hafta: { label: "⚠️ Bu Hafta İçinde", color: "#F59E0B", bg: "#FFFBEB", border: "#FCD34D" },
-    rutin: { label: "📅 Rutin Kontrol", color: "#10B981", bg: "#F0FDF4", border: "#6EE7B7" },
+    acil: { label: "Acil — Bugün", icon: "alert-circle" as const, color: "#EF4444", bg: "#FEF2F2", border: "#FCA5A5" },
+    bu_hafta: { label: "Bu Hafta İçinde", icon: "clock" as const, color: "#F59E0B", bg: "#FFFBEB", border: "#FCD34D" },
+    rutin: { label: "Rutin Kontrol", icon: "calendar" as const, color: "#10B981", bg: "#F0FDF4", border: "#6EE7B7" },
   };
   const cfg = urgencyConfig[vet.urgency];
+  const dateStr = suggestedDate(vet.urgency);
+  const dateShort = suggestedDateShort(vet.urgency);
 
   const findNearbyVets = async () => {
     setStep("locating");
@@ -129,54 +158,55 @@ function VetAppointmentCard({
     }
   };
 
-  const openGoogleMaps = () => {
-    Linking.openURL("https://www.google.com/maps/search/veteriner+kliniği");
+  const handleSaveTask = () => {
+    if (saved || !onSaveTask) return;
+    onSaveTask({
+      title: `Veteriner Randevusu`,
+      date: dateShort,
+      description: vet.reason,
+      type: "checkup",
+    });
+    setSaved(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   return (
     <View style={[vetStyles.card, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
+      {/* Header with urgency + date */}
       <View style={vetStyles.header}>
-        <View style={[vetStyles.urgencyBadge, { backgroundColor: cfg.color + "20", borderColor: cfg.color + "50" }]}>
+        <View style={[vetStyles.urgencyBadge, { backgroundColor: cfg.color + "18", borderColor: cfg.color + "40" }]}>
+          <Feather name={cfg.icon} size={13} color={cfg.color} />
           <Text style={[vetStyles.urgencyText, { color: cfg.color }]}>{cfg.label}</Text>
         </View>
       </View>
 
+      {/* Reason */}
       <Text style={[vetStyles.reason, { color: "#374151" }]}>{vet.reason}</Text>
 
-      <View style={vetStyles.steps}>
-        <View style={vetStyles.step}>
-          <View style={[vetStyles.stepNum, { backgroundColor: colors.primary }]}>
-            <Text style={vetStyles.stepNumText}>1</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={vetStyles.stepTitle}>Yakın Veteriner Bul</Text>
-            <Text style={vetStyles.stepDesc}>GPS konumuna göre kliniğe yönlendirilirsin</Text>
-          </View>
+      {/* Info rows */}
+      <View style={vetStyles.infoSection}>
+        <View style={vetStyles.infoRow}>
+          <Feather name="calendar" size={14} color="#6B7280" />
+          <Text style={vetStyles.infoLabel}>Önerilen Tarih:</Text>
+          <Text style={vetStyles.infoValue}>{dateStr}</Text>
         </View>
-        <View style={vetStyles.step}>
-          <View style={[vetStyles.stepNum, { backgroundColor: "#6B7280" }]}>
-            <Text style={vetStyles.stepNumText}>2</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={vetStyles.stepTitle}>Randevu Al</Text>
-            <Text style={vetStyles.stepDesc}>Kliniği ara veya web sitesinden online randevu oluştur</Text>
-          </View>
+        <View style={vetStyles.infoRow}>
+          <Feather name="map-pin" size={14} color="#6B7280" />
+          <Text style={vetStyles.infoLabel}>Konum:</Text>
+          <Text style={vetStyles.infoValue}>En yakın veteriner kliniği</Text>
         </View>
-        <View style={vetStyles.step}>
-          <View style={[vetStyles.stepNum, { backgroundColor: "#6B7280" }]}>
-            <Text style={vetStyles.stepNumText}>3</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={vetStyles.stepTitle}>Görev Kaydet</Text>
-            <Text style={vetStyles.stepDesc}>Randevu tarihin için hatırlatıcı oluşturabilirim</Text>
-          </View>
+        <View style={vetStyles.infoRow}>
+          <Feather name="file-text" size={14} color="#6B7280" />
+          <Text style={vetStyles.infoLabel}>İşlem:</Text>
+          <Text style={[vetStyles.infoValue, { flex: 1 }]} numberOfLines={2}>{vet.reason}</Text>
         </View>
       </View>
 
       {locationError && (
-        <Text style={vetStyles.errorText}>Konum erişimi reddedildi. Google Maps'ten manuel arama yapabilirsin.</Text>
+        <Text style={vetStyles.errorText}>Konum erişimi reddedildi. Aşağıdan haritadan arayabilirsin.</Text>
       )}
 
+      {/* Buttons */}
       <View style={vetStyles.btns}>
         <TouchableOpacity
           style={[vetStyles.primaryBtn, { backgroundColor: colors.primary }]}
@@ -189,18 +219,27 @@ function VetAppointmentCard({
             <>
               <Feather name="map-pin" size={15} color="#fff" />
               <Text style={vetStyles.primaryBtnText}>
-                {step === "done" ? "Tekrar Aç" : "Yakın Klinikleri Bul"}
+                {step === "done" ? "Haritayı Aç" : "Yakın Klinikleri Bul"}
               </Text>
             </>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[vetStyles.secondaryBtn, { borderColor: colors.primary + "50" }]}
-          onPress={openGoogleMaps}
+          style={[
+            vetStyles.secondaryBtn,
+            {
+              borderColor: saved ? "#10B981" + "60" : cfg.color + "40",
+              backgroundColor: saved ? "#10B981" + "10" : "transparent",
+            },
+          ]}
+          onPress={handleSaveTask}
+          disabled={saved}
         >
-          <Feather name="search" size={14} color={colors.primary} />
-          <Text style={[vetStyles.secondaryBtnText, { color: colors.primary }]}>Manuel Ara</Text>
+          <Feather name={saved ? "check" : "bookmark"} size={14} color={saved ? "#10B981" : cfg.color} />
+          <Text style={[vetStyles.secondaryBtnText, { color: saved ? "#10B981" : cfg.color }]}>
+            {saved ? "Görev Kaydedildi" : "Görev Olarak Kaydet"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -213,30 +252,24 @@ const vetStyles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1.5,
     padding: 14,
-    gap: 12,
+    gap: 10,
   },
   header: { flexDirection: "row", alignItems: "center" },
   urgencyBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 20,
     borderWidth: 1,
   },
   urgencyText: { fontSize: 12, fontFamily: "Inter_700Bold" },
-  reason: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
-  steps: { gap: 10 },
-  step: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  stepNum: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 1,
-  },
-  stepNumText: { fontSize: 11, fontFamily: "Inter_700Bold", color: "#fff" },
-  stepTitle: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#111827" },
-  stepDesc: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#6B7280", marginTop: 1 },
+  reason: { fontSize: 13, fontFamily: "Inter_500Medium", lineHeight: 19 },
+  infoSection: { gap: 6, paddingVertical: 4 },
+  infoRow: { flexDirection: "row", alignItems: "center", gap: 7 },
+  infoLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#6B7280" },
+  infoValue: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#374151" },
   errorText: { fontSize: 11, color: "#EF4444", fontFamily: "Inter_400Regular" },
   btns: { flexDirection: "row", gap: 8 },
   primaryBtn: {
@@ -455,7 +488,23 @@ function MessageBubble({
       </View>
 
       {vet && !isStreaming && (
-        <VetAppointmentCard vet={vet} colors={colors} />
+        <VetAppointmentCard
+          vet={vet}
+          colors={colors}
+          onSaveTask={(parsed) => {
+            const task: Task = {
+              id: Date.now().toString(),
+              petId: String(activePetId ?? ""),
+              type: parsed.type,
+              title: parsed.title,
+              description: parsed.description,
+              dueDate: parsed.date,
+              completed: false,
+              reminderSet: false,
+            };
+            addTask(task);
+          }}
+        />
       )}
 
       {tasks.length > 0 && !isStreaming && (

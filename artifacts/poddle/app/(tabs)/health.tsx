@@ -299,7 +299,16 @@ export default function HealthScreen() {
   const recentLogs = healthLogs.slice(0, 30);
 
   const activityScore = activePet
-    ? Math.min(100, recentLogs.length * 4 + completedTasks.length * 8 + 20)
+    ? Math.min(
+        100,
+        10 +
+          Math.min(recentLogs.length, 10) * 3 +
+          pendingTasks.length * 2 +
+          completedTasks.length * 12 +
+          (recentLogs.length > 0 && recentLogs[0]?.loggedAt
+            ? (Date.now() - new Date(recentLogs[0].loggedAt).getTime() < 86400000 * 2 ? 10 : 0)
+            : 0)
+      )
     : 0;
   const displayScore = activityScore;
 

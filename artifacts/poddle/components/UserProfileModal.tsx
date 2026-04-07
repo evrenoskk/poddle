@@ -45,19 +45,23 @@ export function UserProfileModal({ visible, onClose }: Props) {
       ? "#8B5CF6"
       : "#6B7280";
 
-  async function handleLogout() {
-    Alert.alert("Çıkış Yap", "Hesabından çıkmak istediğine emin misin?", [
-      { text: "İptal", style: "cancel" },
-      {
-        text: "Çıkış Yap",
-        style: "destructive",
-        onPress: async () => {
-          onClose();
-          await logout();
-          router.replace("/login");
-        },
-      },
-    ]);
+  async function doLogout() {
+    onClose();
+    await logout();
+    router.replace("/login");
+  }
+
+  function handleLogout() {
+    if (Platform.OS === "web") {
+      if (confirm("Hesabından çıkmak istediğine emin misin?")) {
+        doLogout();
+      }
+    } else {
+      Alert.alert("Çıkış Yap", "Hesabından çıkmak istediğine emin misin?", [
+        { text: "İptal", style: "cancel" },
+        { text: "Çıkış Yap", style: "destructive", onPress: doLogout },
+      ]);
+    }
   }
 
   const settingGroups = [
