@@ -1,7 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import React from "react";
 import {
+  Alert,
   Modal,
   Platform,
   ScrollView,
@@ -23,21 +25,40 @@ type Props = {
 export function UserProfileModal({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { subscription, pets } = useApp();
+  const { subscription, pets, user, logout } = useApp();
 
   const planLabel =
-    subscription.plan === "monthly"
+    subscription.plan === "pro_plus"
+      ? "Pro Plus ✦"
+      : subscription.plan === "monthly"
       ? "Aylık Premium"
       : subscription.plan === "pay_per_question"
       ? "Soru Başına"
       : "Ücretsiz Plan";
 
   const planColor =
-    subscription.plan === "monthly"
+    subscription.plan === "pro_plus"
+      ? "#F59E0B"
+      : subscription.plan === "monthly"
       ? "#10B981"
       : subscription.plan === "pay_per_question"
       ? "#8B5CF6"
       : "#6B7280";
+
+  async function handleLogout() {
+    Alert.alert("Çıkış Yap", "Hesabından çıkmak istediğine emin misin?", [
+      { text: "İptal", style: "cancel" },
+      {
+        text: "Çıkış Yap",
+        style: "destructive",
+        onPress: async () => {
+          onClose();
+          await logout();
+          router.replace("/login");
+        },
+      },
+    ]);
+  }
 
   const settingGroups = [
     {
@@ -101,8 +122,9 @@ export function UserProfileModal({ visible, onClose }: Props) {
                 <PodleLogo size={32} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.profileName}>Poddle Kullanıcısı</Text>
-                <Text style={styles.profileSub}>{pets.length} evcil hayvan</Text>
+                <Text style={styles.profileName}>{user?.name || "Poddle Kullanıcısı"}</Text>
+                <Text style={styles.profileSub}>{user?.email || ""}</Text>
+                <Text style={[styles.profileSub, { marginTop: 1 }]}>{pets.length} evcil hayvan</Text>
               </View>
               <View style={[styles.planBadge, { backgroundColor: planColor + "30", borderColor: planColor }]}>
                 <Text style={[styles.planBadgeText, { color: "#fff" }]}>{planLabel}</Text>
@@ -150,7 +172,10 @@ export function UserProfileModal({ visible, onClose }: Props) {
               </View>
             ))}
 
-            <TouchableOpacity style={[styles.signOutBtn, { borderColor: "#EF4444" + "40", backgroundColor: "#FEF2F2" }]}>
+            <TouchableOpacity
+              style={[styles.signOutBtn, { borderColor: "#EF4444" + "40", backgroundColor: "#FEF2F2" }]}
+              onPress={handleLogout}
+            >
               <Feather name="log-out" size={16} color="#EF4444" />
               <Text style={[styles.signOutText, { color: "#EF4444" }]}>Çıkış Yap</Text>
             </TouchableOpacity>

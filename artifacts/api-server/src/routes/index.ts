@@ -4,10 +4,12 @@ import poddleRouter from "./poddle";
 import petsRouter from "./pets";
 import healthLogsRouter from "./healthLogs";
 import chatSessionsRouter from "./chatSessions";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use("/auth", authRouter);
 router.use("/poddle", poddleRouter);
 router.use("/pets", petsRouter);
 router.use("/health-logs", healthLogsRouter);

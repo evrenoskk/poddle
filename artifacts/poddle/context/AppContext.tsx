@@ -10,6 +10,14 @@ import React, {
 
 const API_BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 
+export type AuthUser = {
+  id: number;
+  email: string;
+  name: string;
+  plan: "free" | "pay_per_question" | "monthly" | "pro_plus";
+  freeQuestionsUsed: number;
+};
+
 export type Pet = {
   id: number;
   name: string;
@@ -52,7 +60,7 @@ export type ChatSession = {
 };
 
 export type Subscription = {
-  plan: "free" | "pay_per_question" | "monthly";
+  plan: "free" | "pay_per_question" | "monthly" | "pro_plus";
   freeQuestionsUsed: number;
   freeQuestionsTotal: number;
 };
@@ -67,6 +75,9 @@ export type HealthLog = {
 };
 
 type AppContextType = {
+  user: AuthUser | null;
+  authToken: string | null;
+  isAuthLoaded: boolean;
   pets: Pet[];
   activePetId: number | null;
   tasks: Task[];
@@ -76,6 +87,9 @@ type AppContextType = {
   healthLogs: HealthLog[];
   subscription: Subscription;
   isLoaded: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name?: string) => Promise<void>;
+  logout: () => Promise<void>;
   addPet: (pet: Omit<Pet, "id">) => Promise<void>;
   updatePet: (pet: Pet) => Promise<void>;
   deletePet: (id: number) => Promise<void>;
@@ -105,20 +119,18 @@ const STORAGE_KEYS = {
   ACTIVE_PET: "@poddle_active_pet",
   TASKS: "@poddle_tasks",
   SUBSCRIPTION: "@poddle_subscription",
-};
-
-const defaultSubscription: Subscription = {
-  plan: "free",
-  freeQuestionsUsed: 0,
-  freeQuestionsTotal: 5,
+  AUTH_TOKEN: "@poddle_auth_token",
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [isAuthLoaded, setIsAuthLoaded] = useState(false);
+
   const [pets, setPets] = useState<Pet[]>([]);
   const [activePetId, setActivePetIdState] = useState<number | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
-  const [subscription, setSubscription] = useState<Subscription>(defaultSubscription);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -129,61 +141,110 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const messages: ChatMessage[] =
     activeSessionId !== null ? (sessionMessages[activeSessionId] ?? []) : [];
 
-  const fetchPets = useCallback(async () => {
-    try {
-      const resp = await fetch(`${API_BASE}/api/pets`);
-      if (resp.ok) {
-        const data = await resp.json();
-        setPets(data);
-      }
-    } catch {
-      // offline
-    }
-  }, []);
+  const subscription: Subscription = {
+    plan: user?.plan ?? "free",
+    freeQuestionsUsed: user?.freeQuestionsUsed ?? 0,
+    freeQuestionsTotal: 5,
+  };
 
-  const fetchHealthLogs = useCallback(async (petId: number) => {
-    try {
-      const resp = await fetch(`${API_BASE}/api/health-logs/${petId}`);
-      if (resp.ok) {
-        const data = await resp.json();
-        setHealthLogs(data);
-      }
-    } catch {
-      // offline
-    }
-  }, []);
+  function authHeaders(token?: string | null) {
+    const t = token ?? authToken;
+    return t ? { Authorization: `Bearer ${t}` } : {};
+  }
 
-  const fetchSessions = useCallback(async (petId: number) => {
-    try {
-      const resp = await fetch(`${API_BASE}/api/chat-sessions?petId=${petId}`);
-      if (resp.ok) {
-        const data = await resp.json();
-        setSessions(data);
+  const fetchPets = useCallback(
+    async (token?: string | null) => {
+      try {
+        const resp = await fetch(`${API_BASE}/api/pets`, {
+          headers: authHeaders(token),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          setPets(data);
+        }
+      } catch {
+        // offline
       }
-    } catch {
-      // offline
-    }
-  }, []);
+    },
+    [authToken]
+  );
+
+  const fetchHealthLogs = useCallback(
+    async (petId: number) => {
+      try {
+        const resp = await fetch(`${API_BASE}/api/health-logs/${petId}`, {
+          headers: authHeaders(),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          setHealthLogs(data);
+        }
+      } catch {
+        // offline
+      }
+    },
+    [authToken]
+  );
+
+  const fetchSessions = useCallback(
+    async (petId: number) => {
+      try {
+        const resp = await fetch(`${API_BASE}/api/chat-sessions?petId=${petId}`, {
+          headers: authHeaders(),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          setSessions(data);
+        }
+      } catch {
+        // offline
+      }
+    },
+    [authToken]
+  );
 
   useEffect(() => {
     (async () => {
       try {
-        const [activePetData, tasksData, subData] = await Promise.all([
+        const storedToken = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+        if (storedToken) {
+          const resp = await fetch(`${API_BASE}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${storedToken}` },
+          });
+          if (resp.ok) {
+            const { user: u } = await resp.json();
+            setUser(u);
+            setAuthToken(storedToken);
+          } else {
+            await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+          }
+        }
+      } catch {
+        // offline
+      } finally {
+        setIsAuthLoaded(true);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthLoaded) return;
+    (async () => {
+      try {
+        const [activePetData, tasksData] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_PET),
           AsyncStorage.getItem(STORAGE_KEYS.TASKS),
-          AsyncStorage.getItem(STORAGE_KEYS.SUBSCRIPTION),
         ]);
 
         if (activePetData) setActivePetIdState(parseInt(activePetData));
         if (tasksData) setTasks(JSON.parse(tasksData));
-        if (subData) setSubscription(JSON.parse(subData));
 
-        await fetchPets();
+        if (authToken) await fetchPets(authToken);
       } finally {
         setIsLoaded(true);
       }
     })();
-  }, [fetchPets]);
+  }, [isAuthLoaded, authToken]);
 
   useEffect(() => {
     if (activePetId != null) {
@@ -200,42 +261,88 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(newTasks));
   }, []);
 
-  const persistSubscription = useCallback(async (newSub: Subscription) => {
-    await AsyncStorage.setItem(STORAGE_KEYS.SUBSCRIPTION, JSON.stringify(newSub));
-  }, []);
-
-  const addPet = useCallback(async (pet: Omit<Pet, "id">) => {
-    const resp = await fetch(`${API_BASE}/api/pets`, {
+  const login = useCallback(async (email: string, password: string) => {
+    const resp = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(pet),
+      body: JSON.stringify({ email, password }),
     });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error((err as any).error || "Kayıt hatası");
-    }
-    const newPet: Pet = await resp.json();
-    setPets((prev) => [...prev, newPet]);
-    setActivePetIdState(newPet.id);
-    AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_PET, String(newPet.id));
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "Giriş başarısız.");
+    await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.token);
+    setAuthToken(data.token);
+    setUser(data.user);
   }, []);
 
-  const updatePet = useCallback(async (pet: Pet) => {
-    const resp = await fetch(`${API_BASE}/api/pets/${pet.id}`, {
-      method: "PUT",
+  const signup = useCallback(async (email: string, password: string, name?: string) => {
+    const resp = await fetch(`${API_BASE}/api/auth/signup`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(pet),
+      body: JSON.stringify({ email, password, name }),
     });
-    if (resp.ok) {
-      const updated: Pet = await resp.json();
-      setPets((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-    }
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "Kayıt başarısız.");
+    await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.token);
+    setAuthToken(data.token);
+    setUser(data.user);
   }, []);
 
-  const deletePet = useCallback(async (id: number) => {
-    await fetch(`${API_BASE}/api/pets/${id}`, { method: "DELETE" });
-    setPets((prev) => prev.filter((p) => p.id !== id));
+  const logout = useCallback(async () => {
+    await AsyncStorage.multiRemove([STORAGE_KEYS.AUTH_TOKEN, STORAGE_KEYS.ACTIVE_PET]);
+    setAuthToken(null);
+    setUser(null);
+    setPets([]);
+    setActivePetIdState(null);
+    setSessions([]);
+    setSessionMessages({});
+    setHealthLogs([]);
+    setTasks([]);
   }, []);
+
+  const addPet = useCallback(
+    async (pet: Omit<Pet, "id">) => {
+      const resp = await fetch(`${API_BASE}/api/pets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(pet),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error((err as any).error || "Kayıt hatası");
+      }
+      const newPet: Pet = await resp.json();
+      setPets((prev) => [...prev, newPet]);
+      setActivePetIdState(newPet.id);
+      AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_PET, String(newPet.id));
+    },
+    [authToken]
+  );
+
+  const updatePet = useCallback(
+    async (pet: Pet) => {
+      const resp = await fetch(`${API_BASE}/api/pets/${pet.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(pet),
+      });
+      if (resp.ok) {
+        const updated: Pet = await resp.json();
+        setPets((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      }
+    },
+    [authToken]
+  );
+
+  const deletePet = useCallback(
+    async (id: number) => {
+      await fetch(`${API_BASE}/api/pets/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      setPets((prev) => prev.filter((p) => p.id !== id));
+    },
+    [authToken]
+  );
 
   const setActivePetId = useCallback((id: number | null) => {
     setActivePetIdState(id);
@@ -315,7 +422,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (petId: number, title: string, icon: string): Promise<ChatSession> => {
       const resp = await fetch(`${API_BASE}/api/chat-sessions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ petId, title, icon }),
       });
       if (!resp.ok) throw new Error("Oturum oluşturulamadı");
@@ -323,12 +430,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSessions((prev) => [session, ...prev]);
       return session;
     },
-    []
+    [authToken]
   );
 
   const deleteSession = useCallback(
     async (id: number) => {
-      await fetch(`${API_BASE}/api/chat-sessions/${id}`, { method: "DELETE" });
+      await fetch(`${API_BASE}/api/chat-sessions/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
       setSessions((prev) => prev.filter((s) => s.id !== id));
       if (activeSessionId === id) setActiveSessionIdState(null);
       setSessionMessages((prev) => {
@@ -337,19 +447,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return next;
       });
     },
-    [activeSessionId]
+    [activeSessionId, authToken]
   );
 
-  const updateSessionTitle = useCallback(async (id: number, title: string) => {
-    await fetch(`${API_BASE}/api/chat-sessions/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title }),
-    });
-    setSessions((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, title } : s))
-    );
-  }, []);
+  const updateSessionTitle = useCallback(
+    async (id: number, title: string) => {
+      await fetch(`${API_BASE}/api/chat-sessions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ title }),
+      });
+      setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, title } : s)));
+    },
+    [authToken]
+  );
 
   const setActiveSessionId = useCallback((id: number | null) => {
     setActiveSessionIdState(id);
@@ -359,7 +470,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (petId: number, logType: string, value: string, notes: string) => {
       const resp = await fetch(`${API_BASE}/api/health-logs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ petId, logType, value, notes }),
       });
       if (resp.ok) {
@@ -367,33 +478,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setHealthLogs((prev) => [newLog, ...prev]);
       }
     },
-    []
+    [authToken]
   );
 
-  const deleteHealthLog = useCallback(async (id: number) => {
-    await fetch(`${API_BASE}/api/health-logs/${id}`, { method: "DELETE" });
-    setHealthLogs((prev) => prev.filter((l) => l.id !== id));
-  }, []);
+  const deleteHealthLog = useCallback(
+    async (id: number) => {
+      await fetch(`${API_BASE}/api/health-logs/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      setHealthLogs((prev) => prev.filter((l) => l.id !== id));
+    },
+    [authToken]
+  );
 
   const canAskQuestion = useCallback(() => {
-    if (subscription.plan === "monthly") return true;
-    if (subscription.plan === "pay_per_question") return true;
-    return subscription.freeQuestionsUsed < subscription.freeQuestionsTotal;
-  }, [subscription]);
+    if (!user) return false;
+    if (user.plan === "pro_plus" || user.plan === "monthly") return true;
+    if (user.plan === "pay_per_question") return true;
+    return user.freeQuestionsUsed < 5;
+  }, [user]);
 
   const useQuestion = useCallback(() => {
-    if (subscription.plan === "free") {
-      setSubscription((prev) => {
-        const next = { ...prev, freeQuestionsUsed: prev.freeQuestionsUsed + 1 };
-        persistSubscription(next);
-        return next;
-      });
+    if (user?.plan === "free") {
+      setUser((prev) => prev ? { ...prev, freeQuestionsUsed: prev.freeQuestionsUsed + 1 } : prev);
     }
-  }, [subscription.plan, persistSubscription]);
+  }, [user?.plan]);
 
   return (
     <AppContext.Provider
       value={{
+        user,
+        authToken,
+        isAuthLoaded,
         pets,
         activePetId,
         tasks,
@@ -403,6 +520,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         healthLogs,
         subscription,
         isLoaded,
+        login,
+        signup,
+        logout,
         addPet,
         updatePet,
         deletePet,
@@ -436,3 +556,5 @@ export function useApp() {
   if (!ctx) throw new Error("useApp must be used inside AppProvider");
   return ctx;
 }
+
+export const useAppContext = useApp;
