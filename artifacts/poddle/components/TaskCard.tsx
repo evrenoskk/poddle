@@ -47,8 +47,11 @@ function getTaskBg(type: Task["type"]) {
 }
 
 function getDueDateLabel(dueDate: string) {
-  const due = new Date(dueDate);
+  if (!dueDate) return "—";
+  const due = new Date(dueDate.includes("T") ? dueDate : dueDate + "T00:00:00");
+  if (isNaN(due.getTime())) return "—";
   const now = new Date();
+  now.setHours(0, 0, 0, 0);
   const diff = Math.round((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   if (diff < 0) return "Gecikti";
   if (diff === 0) return "Bugün";
@@ -61,7 +64,8 @@ export function TaskCard({ task, onToggle, onDelete }: Props) {
   const colors = useColors();
   const taskColor = getTaskColor(task.type);
   const taskBg = getTaskBg(task.type);
-  const isOverdue = new Date(task.dueDate) < new Date() && !task.completed;
+  const dueMs = task.dueDate ? new Date(task.dueDate.includes("T") ? task.dueDate : task.dueDate + "T00:00:00").getTime() : NaN;
+  const isOverdue = !isNaN(dueMs) && dueMs < Date.now() && !task.completed;
   const isToday = getDueDateLabel(task.dueDate) === "Bugün";
 
   const handleToggle = () => {

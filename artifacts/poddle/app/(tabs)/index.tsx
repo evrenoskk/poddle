@@ -53,7 +53,7 @@ export default function HomeScreen() {
   const quickActions = [
     { icon: "activity", label: "Sağlık", color: "#10B981", bg: "#D1FAE5", route: "/health" as const },
     { icon: "message-circle", label: "Poddle AI", color: "#7C3AED", bg: "#EDE9FE", route: "/chat" as const },
-    { icon: "calendar", label: "Randevu", color: "#F59E0B", bg: "#FEF3C7", route: "/health" as const },
+    { icon: "calendar", label: "Takvim", color: "#F59E0B", bg: "#FEF3C7", route: "/calendar" as const },
     { icon: "heart", label: "Hayvanlarım", color: "#2563EB", bg: "#DBEAFE", route: "/profile" as const },
   ];
 

@@ -272,13 +272,7 @@ function HealthLogItem({ log, colors, onDelete }: { log: HealthLog; colors: Retu
   );
 }
 
-const VETS = [
-  { id: "1", name: "Acıbadem Veteriner Kliniği", address: "Kadıköy, Istanbul", phone: "0216 123 4567", rating: 4.8 },
-  { id: "2", name: "Bostancı Hayvan Hastanesi", address: "Bostancı, Istanbul", phone: "0216 987 6543", rating: 4.6 },
-  { id: "3", name: "Florya Veteriner Merkezi", address: "Florya, Istanbul", phone: "0212 456 7890", rating: 4.9 },
-];
-
-type ActiveTab = "logs" | "tasks" | "vets";
+type ActiveTab = "logs" | "tasks";
 
 export default function HealthScreen() {
   const colors = useColors();
@@ -302,21 +296,18 @@ export default function HealthScreen() {
   const activityScore = activePet
     ? Math.min(
         100,
-        10 +
-          Math.min(recentLogs.length, 10) * 3 +
-          pendingTasks.length * 2 +
-          completedTasks.length * 12 +
+        Math.min(recentLogs.length, 10) * 4 +
+          pendingTasks.length * 3 +
+          completedTasks.length * 10 +
           (recentLogs.length > 0 && recentLogs[0]?.loggedAt
-            ? (Date.now() - new Date(recentLogs[0].loggedAt).getTime() < 86400000 * 2 ? 10 : 0)
+            ? (Date.now() - new Date(recentLogs[0].loggedAt).getTime() < 86400000 * 2 ? 15 : 0)
             : 0)
       )
     : 0;
-  const displayScore = activityScore;
 
   const tabs: { key: ActiveTab; label: string; icon: string }[] = [
     { key: "logs", label: "Günlük", icon: "activity" },
     { key: "tasks", label: "Görevler", icon: "check-square" },
-    { key: "vets", label: "Veterinerler", icon: "map-pin" },
   ];
 
   return (
@@ -352,7 +343,7 @@ export default function HealthScreen() {
         {activePet ? (
           <>
             <View style={styles.scoreSection}>
-              <HealthScoreRing score={recentLogs.length === 0 && completedTasks.length === 0 ? 78 : displayScore} size={160} />
+              <HealthScoreRing score={activityScore} size={160} />
               <Text style={[styles.scorePetName, { color: colors.foreground }]}>
                 {activePet.name}'nin Bakım Aktivitesi
               </Text>
@@ -457,35 +448,6 @@ export default function HealthScreen() {
                 </>
               )}
 
-              {activeTab === "vets" && (
-                <>
-                  <Text style={[styles.vetTitle, { color: colors.mutedForeground }]}>Yakın Veterinerler</Text>
-                  {VETS.map((vet) => (
-                    <View key={vet.id} style={[styles.vetCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                      <View style={[styles.vetIcon, { backgroundColor: colors.primaryLight }]}>
-                        <MaterialCommunityIcons name="hospital-building" size={24} color={colors.primary} />
-                      </View>
-                      <View style={styles.vetInfo}>
-                        <Text style={[styles.vetName, { color: colors.foreground }]}>{vet.name}</Text>
-                        <Text style={[styles.vetAddr, { color: colors.mutedForeground }]}>{vet.address}</Text>
-                        <View style={styles.vetRatingRow}>
-                          <Feather name="star" size={12} color="#F59E0B" />
-                          <Text style={[styles.vetRating, { color: colors.mutedForeground }]}>{vet.rating}</Text>
-                        </View>
-                      </View>
-                      <TouchableOpacity
-                        style={[styles.appointBtn, { backgroundColor: colors.primary }]}
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                          Alert.alert("Randevu", `${vet.name} ile randevu talebi gönderildi.`);
-                        }}
-                      >
-                        <Text style={styles.appointBtnText}>Randevu</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </>
-              )}
             </View>
           </>
         ) : (
@@ -590,16 +552,6 @@ const styles = StyleSheet.create({
   emptyAddBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, marginTop: 4 },
   emptyAddBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   completedTitle: { fontSize: 13, fontFamily: "Inter_600SemiBold", marginTop: 12, marginBottom: 8, letterSpacing: 0.5 },
-  vetTitle: { fontSize: 13, fontFamily: "Inter_600SemiBold", marginBottom: 12, letterSpacing: 0.5 },
-  vetCard: { flexDirection: "row", alignItems: "center", padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 10, gap: 12 },
-  vetIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  vetInfo: { flex: 1, gap: 3 },
-  vetName: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  vetAddr: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  vetRatingRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  vetRating: { fontSize: 12, fontFamily: "Inter_500Medium" },
-  appointBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  appointBtnText: { fontSize: 12, fontFamily: "Inter_700Bold", color: "#fff" },
   noPetBox: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 16, paddingHorizontal: 32 },
   noPetText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
   addPetBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14 },

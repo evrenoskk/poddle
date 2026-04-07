@@ -24,11 +24,12 @@ An AI-powered pet care companion mobile app.
 
 **Features:**
 - Home screen with active pet card, upcoming tasks, quick actions
-- AI Chat (Poddle AI) with veterinary counselor system prompt using GPT-5.2
+- AI Chat (Poddle AI) with veterinary counselor system prompt
 - Photo/video upload for visual analysis
-- Health tracking with health score ring animation
-- Task management (vaccinations, grooming, checkups, medications)
-- Nearby veterinarian listing with appointment booking
+- Health tracking with activity score ring (starts at 0, grows with logs/tasks)
+- Calendar tab with monthly view, task dots, and date-based task browsing
+- Task management (vaccinations, grooming, checkups, medications) — sub-tab under Calendar
+- Nearby veterinarian listing with GPS + appointment booking — sub-tab under Calendar
 - Freemium model: 5 free questions → $0.50/question or $9.99/month subscription
 - Pet profile management with photo support
 

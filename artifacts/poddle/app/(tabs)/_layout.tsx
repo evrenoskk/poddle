@@ -23,6 +23,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "heart", selected: "heart.fill" }} />
         <Label>Sağlık</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="calendar">
+        <Icon sf={{ default: "calendar", selected: "calendar" }} />
+        <Label>Takvim</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <Icon sf={{ default: "pawprint", selected: "pawprint.fill" }} />
         <Label>Hayvanlarım</Label>
@@ -155,6 +159,18 @@ function ClassicTabLayout() {
               <SymbolView name="heart" tintColor={color} size={24} />
             ) : (
               <TabIcon icon="activity" color={color} focused={focused} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: "Takvim",
+          tabBarIcon: ({ color, focused }) =>
+            isIOS ? (
+              <SymbolView name="calendar" tintColor={color} size={24} />
+            ) : (
+              <TabIcon icon="calendar" color={color} focused={focused} />
             ),
         }}
       />
