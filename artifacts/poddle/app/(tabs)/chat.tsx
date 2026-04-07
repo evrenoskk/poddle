@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { Linking } from "react-native";
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import {
   ActivityIndicator,
@@ -45,6 +47,23 @@ interface ParsedTask {
   type: Task["type"];
 }
 
+interface VetAppointment {
+  urgency: "acil" | "bu_hafta" | "rutin";
+  reason: string;
+}
+
+function parseVetAppointment(raw: string): { clean: string; vet: VetAppointment | null } {
+  const vetRegex = /\[VET_RANDEVU:([^:\]]+):([^\]]+)\]/;
+  const match = vetRegex.exec(raw);
+  if (!match) return { clean: raw, vet: null };
+  const vet: VetAppointment = {
+    urgency: (match[1].trim() as VetAppointment["urgency"]) || "rutin",
+    reason: match[2].trim(),
+  };
+  const clean = raw.replace(vetRegex, "").trim();
+  return { clean, vet };
+}
+
 function parseTasksFromContent(raw: string): { clean: string; tasks: ParsedTask[] } {
   const tasks: ParsedTask[] = [];
   const taskRegex = /\[GÖREV:([^:\]]+):([^:\]]+):([^:\]]+):([^\]]+)\]/g;
@@ -60,6 +79,187 @@ function parseTasksFromContent(raw: string): { clean: string; tasks: ParsedTask[
   const clean = raw.replace(taskRegex, "").trim();
   return { clean, tasks };
 }
+
+function parseAllMarkers(raw: string): { clean: string; tasks: ParsedTask[]; vet: VetAppointment | null } {
+  const { clean: afterVet, vet } = parseVetAppointment(raw);
+  const { clean, tasks } = parseTasksFromContent(afterVet);
+  return { clean, tasks, vet };
+}
+
+function VetAppointmentCard({
+  vet,
+  colors,
+}: {
+  vet: VetAppointment;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const [step, setStep] = useState<"idle" | "locating" | "done">("idle");
+  const [locationError, setLocationError] = useState(false);
+
+  const urgencyConfig = {
+    acil: { label: "🚨 Acil — Bugün Git", color: "#EF4444", bg: "#FEF2F2", border: "#FCA5A5" },
+    bu_hafta: { label: "⚠️ Bu Hafta İçinde", color: "#F59E0B", bg: "#FFFBEB", border: "#FCD34D" },
+    rutin: { label: "📅 Rutin Kontrol", color: "#10B981", bg: "#F0FDF4", border: "#6EE7B7" },
+  };
+  const cfg = urgencyConfig[vet.urgency];
+
+  const findNearbyVets = async () => {
+    setStep("locating");
+    setLocationError(false);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setLocationError(true);
+        setStep("idle");
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const { latitude, longitude } = loc.coords;
+      const query = encodeURIComponent("veteriner kliniği");
+      const mapsUrl = Platform.OS === "ios"
+        ? `maps://maps.apple.com/?q=${query}&ll=${latitude},${longitude}&z=14`
+        : `geo:${latitude},${longitude}?q=${query}`;
+      const fallbackUrl = `https://www.google.com/maps/search/${query}/@${latitude},${longitude},14z`;
+      const canOpen = await Linking.canOpenURL(mapsUrl);
+      await Linking.openURL(canOpen ? mapsUrl : fallbackUrl);
+      setStep("done");
+    } catch {
+      setLocationError(true);
+      setStep("idle");
+    }
+  };
+
+  const openGoogleMaps = () => {
+    Linking.openURL("https://www.google.com/maps/search/veteriner+kliniği");
+  };
+
+  return (
+    <View style={[vetStyles.card, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
+      <View style={vetStyles.header}>
+        <View style={[vetStyles.urgencyBadge, { backgroundColor: cfg.color + "20", borderColor: cfg.color + "50" }]}>
+          <Text style={[vetStyles.urgencyText, { color: cfg.color }]}>{cfg.label}</Text>
+        </View>
+      </View>
+
+      <Text style={[vetStyles.reason, { color: "#374151" }]}>{vet.reason}</Text>
+
+      <View style={vetStyles.steps}>
+        <View style={vetStyles.step}>
+          <View style={[vetStyles.stepNum, { backgroundColor: colors.primary }]}>
+            <Text style={vetStyles.stepNumText}>1</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={vetStyles.stepTitle}>Yakın Veteriner Bul</Text>
+            <Text style={vetStyles.stepDesc}>GPS konumuna göre kliniğe yönlendirilirsin</Text>
+          </View>
+        </View>
+        <View style={vetStyles.step}>
+          <View style={[vetStyles.stepNum, { backgroundColor: "#6B7280" }]}>
+            <Text style={vetStyles.stepNumText}>2</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={vetStyles.stepTitle}>Randevu Al</Text>
+            <Text style={vetStyles.stepDesc}>Kliniği ara veya web sitesinden online randevu oluştur</Text>
+          </View>
+        </View>
+        <View style={vetStyles.step}>
+          <View style={[vetStyles.stepNum, { backgroundColor: "#6B7280" }]}>
+            <Text style={vetStyles.stepNumText}>3</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={vetStyles.stepTitle}>Görev Kaydet</Text>
+            <Text style={vetStyles.stepDesc}>Randevu tarihin için hatırlatıcı oluşturabilirim</Text>
+          </View>
+        </View>
+      </View>
+
+      {locationError && (
+        <Text style={vetStyles.errorText}>Konum erişimi reddedildi. Google Maps'ten manuel arama yapabilirsin.</Text>
+      )}
+
+      <View style={vetStyles.btns}>
+        <TouchableOpacity
+          style={[vetStyles.primaryBtn, { backgroundColor: colors.primary }]}
+          onPress={findNearbyVets}
+          disabled={step === "locating"}
+        >
+          {step === "locating" ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Feather name="map-pin" size={15} color="#fff" />
+              <Text style={vetStyles.primaryBtnText}>
+                {step === "done" ? "Tekrar Aç" : "Yakın Klinikleri Bul"}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[vetStyles.secondaryBtn, { borderColor: colors.primary + "50" }]}
+          onPress={openGoogleMaps}
+        >
+          <Feather name="search" size={14} color={colors.primary} />
+          <Text style={[vetStyles.secondaryBtnText, { color: colors.primary }]}>Manuel Ara</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const vetStyles = StyleSheet.create({
+  card: {
+    marginTop: 10,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 14,
+    gap: 12,
+  },
+  header: { flexDirection: "row", alignItems: "center" },
+  urgencyBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  urgencyText: { fontSize: 12, fontFamily: "Inter_700Bold" },
+  reason: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
+  steps: { gap: 10 },
+  step: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  stepNum: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 1,
+  },
+  stepNumText: { fontSize: 11, fontFamily: "Inter_700Bold", color: "#fff" },
+  stepTitle: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#111827" },
+  stepDesc: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#6B7280", marginTop: 1 },
+  errorText: { fontSize: 11, color: "#EF4444", fontFamily: "Inter_400Regular" },
+  btns: { flexDirection: "row", gap: 8 },
+  primaryBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  primaryBtnText: { color: "#fff", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  secondaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  secondaryBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+});
 
 function typeIcon(type: Task["type"]): string {
   switch (type) {
@@ -156,8 +356,17 @@ function MessageBubble({
   addTask: (t: Task) => void;
 }) {
   const isUser = msg.role === "user";
-  const { clean, tasks } = parseTasksFromContent(msg.content);
+  const { clean, tasks, vet } = parseAllMarkers(msg.content);
   const [addedTasks, setAddedTasks] = useState<Set<number>>(new Set());
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(6)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
   const isStreaming = clean === "▍" || (clean.endsWith("▍") && clean.length < 3);
   const displayText = clean.endsWith("▍") ? clean.slice(0, -1) : clean;
@@ -209,7 +418,7 @@ function MessageBubble({
 
   if (isUser) {
     return (
-      <View style={styles.userMsgRow}>
+      <Animated.View style={[styles.userMsgRow, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         {msg.mediaUri && (
           <Image source={{ uri: msg.mediaUri }} style={styles.msgImage} contentFit="cover" />
         )}
@@ -221,12 +430,12 @@ function MessageBubble({
         >
           <Text style={styles.userText}>{displayText}</Text>
         </LinearGradient>
-      </View>
+      </Animated.View>
     );
   }
 
   return (
-    <View style={styles.aiBubbleWrapper}>
+    <Animated.View style={[styles.aiBubbleWrapper, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
       <View style={styles.aiAvatarRow}>
         <LinearGradient colors={[colors.primary, "#1d4ed8"]} style={styles.aiAvatar}>
           <PodleLogo size={14} />
@@ -244,6 +453,10 @@ function MessageBubble({
           <Markdown style={markdownStyles}>{displayText}</Markdown>
         )}
       </View>
+
+      {vet && !isStreaming && (
+        <VetAppointmentCard vet={vet} colors={colors} />
+      )}
 
       {tasks.length > 0 && !isStreaming && (
         <View style={styles.taskSuggestionsContainer}>
@@ -279,7 +492,7 @@ function MessageBubble({
           })}
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -583,9 +796,9 @@ function ChatView({
         petContext += `\n\nSon sağlık kayıtları:\n${logLines}`;
       }
 
-      const historyMsgs = messages.slice(-8).map((m) => ({
+      const historyMsgs = messages.slice(-14).map((m) => ({
         role: m.role,
-        content: m.content,
+        content: parseAllMarkers(m.content).clean,
       }));
 
       let imageBase64: string | undefined;
