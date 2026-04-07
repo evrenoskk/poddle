@@ -25,7 +25,7 @@ type Props = {
 export function UserProfileModal({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { subscription, pets, user, logout } = useApp();
+  const { subscription, pets, user, logout, tasks, clearAllTasks } = useApp();
 
   const planLabel =
     subscription.plan === "pro_plus"
@@ -60,6 +60,19 @@ export function UserProfileModal({ visible, onClose }: Props) {
       Alert.alert("Çıkış Yap", "Hesabından çıkmak istediğine emin misin?", [
         { text: "İptal", style: "cancel" },
         { text: "Çıkış Yap", style: "destructive", onPress: doLogout },
+      ]);
+    }
+  }
+
+  function handleClearTasks() {
+    if (Platform.OS === "web") {
+      if (confirm("Tüm görevler silinecek. Emin misin?")) {
+        clearAllTasks();
+      }
+    } else {
+      Alert.alert("Görevleri Temizle", "Tüm görevler silinecek. Emin misin?", [
+        { text: "İptal", style: "cancel" },
+        { text: "Temizle", style: "destructive", onPress: clearAllTasks },
       ]);
     }
   }
@@ -175,6 +188,16 @@ export function UserProfileModal({ visible, onClose }: Props) {
                 </View>
               </View>
             ))}
+
+            {tasks.length > 0 && (
+              <TouchableOpacity
+                style={[styles.signOutBtn, { borderColor: "#F59E0B40", backgroundColor: "#FFFBEB", marginBottom: 10 }]}
+                onPress={handleClearTasks}
+              >
+                <Feather name="trash-2" size={16} color="#F59E0B" />
+                <Text style={[styles.signOutText, { color: "#F59E0B" }]}>Tüm Görevleri Temizle ({tasks.length})</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={[styles.signOutBtn, { borderColor: "#EF4444" + "40", backgroundColor: "#FEF2F2" }]}

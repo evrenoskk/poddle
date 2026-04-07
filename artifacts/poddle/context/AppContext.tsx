@@ -97,6 +97,7 @@ type AppContextType = {
   addTask: (task: Task) => void;
   updateTask: (task: Task) => void;
   deleteTask: (id: string) => void;
+  clearAllTasks: () => void;
   addMessage: (message: ChatMessage) => void;
   updateMessage: (id: string, content: string) => void;
   clearMessages: () => void;
@@ -161,6 +162,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (resp.ok) {
           const data = await resp.json();
           setPets(data);
+          if (data.length > 0) {
+            setActivePetIdState((prev) => {
+              if (prev == null) {
+                const firstId = data[0].id;
+                AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_PET, String(firstId));
+                return firstId;
+              }
+              return prev;
+            });
+          }
         }
       } catch {
         // offline
@@ -383,6 +394,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [persistTasks]
   );
 
+  const clearAllTasks = useCallback(() => {
+    setTasks([]);
+    AsyncStorage.removeItem(STORAGE_KEYS.TASKS);
+  }, []);
+
   const addMessage = useCallback(
     (message: ChatMessage) => {
       if (activeSessionId === null) return;
@@ -530,6 +546,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addTask,
         updateTask,
         deleteTask,
+        clearAllTasks,
         addMessage,
         updateMessage,
         clearMessages,

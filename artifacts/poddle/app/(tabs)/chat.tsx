@@ -1147,15 +1147,16 @@ export default function ChatScreen() {
 
   const handleNewSession = useCallback(
     async (title: string, icon: string) => {
-      if (!activePetId) return;
+      const petId = activePetId ?? activePet?.id;
+      if (!petId) return;
       try {
-        const session = await createSession(activePetId, title, icon);
+        const session = await createSession(petId, title, icon);
         setActiveSessionId(session.id);
       } catch {
         Alert.alert("Hata", "Sohbet oluşturulamadı.");
       }
     },
-    [activePetId, createSession, setActiveSessionId]
+    [activePetId, activePet, createSession, setActiveSessionId]
   );
 
   const handleDeleteSession = useCallback(

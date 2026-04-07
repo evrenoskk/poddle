@@ -40,6 +40,8 @@ An AI-powered pet care companion mobile app.
 - Animated health score ring (react-native-reanimated)
 - LinearGradient headers
 - SharedHeader component (`components/SharedHeader.tsx`) — consistent header across all tabs with profile button always in top-left, title, optional subtitle, and right-side action buttons. Each tab uses this shared layout.
+- Auto-select first pet when `activePetId` is null but pets exist (prevents silent failures in session creation, health logs, etc.)
+- UserProfileModal includes "Tüm Görevleri Temizle" button (visible when tasks exist) for clearing all local tasks
 
 ### API Server (`artifacts/api-server/`)
 Express 5 backend with:
