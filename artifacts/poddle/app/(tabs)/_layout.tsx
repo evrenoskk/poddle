@@ -24,8 +24,8 @@ function NativeTabLayout() {
         <Label>Sağlık</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: "person", selected: "person.fill" }} />
-        <Label>Profil</Label>
+        <Icon sf={{ default: "pawprint", selected: "pawprint.fill" }} />
+        <Label>Hayvanlarım</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -49,6 +49,15 @@ function TabIcon({
       ]}
     >
       <Feather name={icon as any} size={20} color={color} />
+    </View>
+  );
+}
+
+function TabIconPaw({ color, focused }: { color: string; focused: boolean }) {
+  const colors = useColors();
+  return (
+    <View style={[styles.tabIconBg, focused && { backgroundColor: colors.primaryLight }]}>
+      <MaterialCommunityIcons name="paw" size={20} color={color} />
     </View>
   );
 }
@@ -152,12 +161,12 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profil",
+          title: "Hayvanlarım",
           tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="person" tintColor={color} size={24} />
+              <SymbolView name="pawprint" tintColor={color} size={24} />
             ) : (
-              <TabIcon icon="user" color={color} focused={focused} />
+              <TabIconPaw color={color} focused={focused} />
             ),
         }}
       />

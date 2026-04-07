@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
+import React, { useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -17,6 +17,7 @@ import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
 import { TaskCard } from "@/components/TaskCard";
 import { PodleLogo } from "@/components/PodleLogo";
+import { UserProfileModal } from "@/components/UserProfileModal";
 
 const SPECIES_ICON: Record<string, string> = {
   Köpek: "dog",
@@ -31,6 +32,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { pets, activePetId, tasks, updateTask, deleteTask } = useApp();
+  const [showUserProfile, setShowUserProfile] = useState(false);
 
   const activePet = pets.find((p) => p.id === activePetId) ?? pets[0];
   const upcomingTasks = tasks
@@ -53,7 +55,7 @@ export default function HomeScreen() {
     { icon: "activity", label: "Sağlık", color: "#10B981", bg: "#D1FAE5", route: "/health" as const },
     { icon: "message-circle", label: "Poddle AI", color: "#7C3AED", bg: "#EDE9FE", route: "/chat" as const },
     { icon: "calendar", label: "Randevu", color: "#F59E0B", bg: "#FEF3C7", route: "/health" as const },
-    { icon: "user", label: "Profil", color: "#2563EB", bg: "#DBEAFE", route: "/profile" as const },
+    { icon: "heart", label: "Hayvanlarım", color: "#2563EB", bg: "#DBEAFE", route: "/profile" as const },
   ];
 
   const hour = new Date().getHours();
@@ -77,16 +79,19 @@ export default function HomeScreen() {
           <View style={styles.headerDecorCircle2} />
 
           <View style={styles.headerContent}>
-            <View style={styles.headerLeft}>
-              <PodleLogo size={44} rounded />
-              <View>
-                <Text style={styles.headerGreeting}>{greeting} 👋</Text>
-                <Text style={styles.headerBrand}>Poddle</Text>
-              </View>
-            </View>
             <TouchableOpacity
-              style={styles.notifBtn}
+              style={styles.userProfileBtn}
+              onPress={() => setShowUserProfile(true)}
             >
+              <View style={styles.userProfileAvatar}>
+                <Feather name="user" size={18} color="#fff" />
+              </View>
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerGreeting}>{greeting} 👋</Text>
+              <Text style={styles.headerBrand}>Poddle</Text>
+            </View>
+            <TouchableOpacity style={styles.notifBtn}>
               <Feather name="bell" size={18} color="#fff" />
               <View style={styles.notifDot} />
             </TouchableOpacity>
@@ -275,6 +280,11 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <UserProfileModal
+        visible={showUserProfile}
+        onClose={() => setShowUserProfile(false)}
+      />
     </View>
   );
 }
@@ -315,6 +325,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+  },
+  userProfileBtn: {
+    padding: 2,
+  },
+  userProfileAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerGreeting: {
     fontSize: 12,
