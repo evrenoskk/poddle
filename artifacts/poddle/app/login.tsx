@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -11,10 +12,18 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppContext } from "@/context/AppContext";
-import { PodleLogo } from "@/components/PodleLogo";
+
+function PawIcon({ size = 40 }: { size?: number }) {
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ fontSize: size * 0.72, lineHeight: size }}>🐾</Text>
+    </View>
+  );
+}
 
 export default function LoginScreen() {
   const { login } = useAppContext();
@@ -24,10 +33,25 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPass, setShowPass] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passFocused, setPassFocused] = useState(false);
+  const passRef = useRef<TextInput>(null);
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  function shake() {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 6, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -6, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
+    ]).start();
+  }
 
   async function handleLogin() {
     if (!email.trim() || !password) {
       setError("E-posta ve şifre gereklidir.");
+      shake();
       return;
     }
     setLoading(true);
@@ -37,262 +61,374 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
     } catch (e: any) {
       setError(e.message || "Giriş başarısız.");
+      shake();
     } finally {
       setLoading(false);
     }
   }
 
+  const safeTop = insets.top + (Platform.OS === "web" ? 0 : 20);
+
   return (
-    <LinearGradient colors={["#1e40af", "#3B82F6", "#60a5fa"]} style={{ flex: 1 }}>
+    <View style={styles.root}>
+      <LinearGradient
+        colors={["#0f172a", "#1e3a8a", "#2563eb"]}
+        locations={[0, 0.45, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Decorative circles */}
+      <View style={[styles.decorCircle1, { top: safeTop + 80 }]} />
+      <View style={[styles.decorCircle2, { top: safeTop + 20 }]} />
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
       >
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}
+          contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          bounces={false}
         >
-          <View style={styles.logoSection}>
-            <View style={styles.logoCircle}>
-              <PodleLogo size={36} />
+          {/* Hero section */}
+          <View style={[styles.hero, { paddingTop: safeTop + 48 }]}>
+            <View style={styles.logoWrap}>
+              <LinearGradient
+                colors={["rgba(255,255,255,0.25)", "rgba(255,255,255,0.08)"]}
+                style={styles.logoGlass}
+              >
+                <PawIcon size={38} />
+              </LinearGradient>
             </View>
-            <Text style={styles.appName}>Poddle</Text>
-            <Text style={styles.tagline}>AI destekli evcil hayvan bakım asistanın</Text>
+            <Text style={styles.brandName}>Poddle</Text>
+            <Text style={styles.brandSub}>AI destekli evcil hayvan asistanın</Text>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Hesabına Giriş Yap</Text>
-            <Text style={styles.cardSub}>Devam etmek için bilgilerini gir</Text>
+          {/* Card */}
+          <Animated.View style={[styles.card, { transform: [{ translateX: shakeAnim }] }]}>
+            <Text style={styles.cardTitle}>Hoş geldin</Text>
+            <Text style={styles.cardSub}>Hesabına giriş yap</Text>
 
-            {error && (
-              <View style={styles.errorBox}>
+            {error ? (
+              <View style={styles.errorRow}>
+                <Feather name="alert-circle" size={14} color="#EF4444" />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
-            )}
+            ) : null}
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>E-posta</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="ornek@email.com"
-                placeholderTextColor="#9CA3AF"
-                value={email}
-                onChangeText={(t) => { setEmail(t); setError(null); }}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+            {/* Email */}
+            <View style={styles.fieldWrap}>
+              <Text style={styles.fieldLabel}>E-posta</Text>
+              <View style={[styles.inputBox, emailFocused && styles.inputBoxFocused]}>
+                <Feather name="mail" size={16} color={emailFocused ? "#2563eb" : "#9CA3AF"} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="ornek@email.com"
+                  placeholderTextColor="#C4C4CC"
+                  value={email}
+                  onChangeText={(t) => { setEmail(t); setError(null); }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="next"
+                  onSubmitEditing={() => passRef.current?.focus()}
+                  onFocus={() => setEmailFocused(true)}
+                  onBlur={() => setEmailFocused(false)}
+                />
+              </View>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Şifre</Text>
-              <View style={styles.passwordRow}>
+            {/* Password */}
+            <View style={styles.fieldWrap}>
+              <Text style={styles.fieldLabel}>Şifre</Text>
+              <View style={[styles.inputBox, passFocused && styles.inputBoxFocused]}>
+                <Feather name="lock" size={16} color={passFocused ? "#2563eb" : "#9CA3AF"} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                  placeholder="En az 6 karakter"
-                  placeholderTextColor="#9CA3AF"
+                  ref={passRef}
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="••••••••"
+                  placeholderTextColor="#C4C4CC"
                   value={password}
                   onChangeText={(t) => { setPassword(t); setError(null); }}
                   secureTextEntry={!showPass}
                   returnKeyType="done"
                   onSubmitEditing={handleLogin}
+                  onFocus={() => setPassFocused(true)}
+                  onBlur={() => setPassFocused(false)}
                 />
                 <TouchableOpacity
-                  style={styles.eyeBtn}
                   onPress={() => setShowPass((v) => !v)}
+                  style={styles.eyeBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Text style={styles.eyeText}>{showPass ? "Gizle" : "Göster"}</Text>
+                  <Feather
+                    name={showPass ? "eye" : "eye-off"}
+                    size={17}
+                    color="#9CA3AF"
+                  />
                 </TouchableOpacity>
               </View>
             </View>
 
+            {/* Login button */}
             <TouchableOpacity
-              style={[styles.loginBtn, loading && { opacity: 0.7 }]}
               onPress={handleLogin}
               disabled={loading}
-              activeOpacity={0.85}
+              activeOpacity={0.88}
+              style={styles.btnWrap}
             >
               <LinearGradient
-                colors={["#1e40af", "#3B82F6"]}
-                style={styles.loginBtnGradient}
+                colors={["#2563eb", "#1d4ed8"]}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.btn}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.loginBtnText}>Giriş Yap</Text>
+                  <Text style={styles.btnText}>Giriş Yap</Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.signupLink}
-              onPress={() => router.push("/signup")}
-            >
-              <Text style={styles.signupLinkText}>
-                Hesabın yok mu?{" "}
-                <Text style={styles.signupLinkBold}>Kayıt Ol</Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>ya da</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-          <Text style={styles.footer}>
-            Giriş yaparak Kullanım Koşulları ve Gizlilik Politikası'nı kabul etmiş olursunuz.
+            {/* Sign up */}
+            <TouchableOpacity
+              onPress={() => router.push("/signup")}
+              style={styles.secondaryBtn}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.secondaryBtnText}>Hesap Oluştur</Text>
+            </TouchableOpacity>
+          </Animated.View>
+
+          <Text style={[styles.terms, { paddingBottom: insets.bottom + 24 }]}>
+            Giriş yaparak{" "}
+            <Text style={styles.termsLink}>Kullanım Koşulları</Text>
+            {" "}ve{" "}
+            <Text style={styles.termsLink}>Gizlilik Politikası</Text>
+            {"\n"}kabul edilmiş sayılırsınız.
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    alignItems: "center",
+  root: {
+    flex: 1,
+    backgroundColor: "#0f172a",
   },
-  logoSection: {
-    alignItems: "center",
-    marginBottom: 36,
+  decorCircle1: {
+    position: "absolute",
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: "rgba(59,130,246,0.12)",
+    right: -80,
   },
-  logoCircle: {
+  decorCircle2: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(99,102,241,0.10)",
+    left: -40,
+  },
+  hero: {
+    alignItems: "center",
+    paddingBottom: 32,
+  },
+  logoWrap: {
+    marginBottom: 20,
+    shadowColor: "#2563eb",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  logoGlass: {
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: "rgba(255,255,255,0.18)",
   },
-  appName: {
-    fontSize: 36,
+  brandName: {
+    fontSize: 34,
     fontWeight: "800",
     color: "#fff",
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
     fontFamily: "Inter_700Bold",
+    marginBottom: 6,
   },
-  tagline: {
+  brandSub: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
-    marginTop: 6,
+    color: "rgba(255,255,255,0.55)",
     fontFamily: "Inter_400Regular",
-    textAlign: "center",
+    letterSpacing: 0.1,
   },
   card: {
-    width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 24,
-    padding: 28,
+    marginHorizontal: 20,
+    backgroundColor: "#ffffff",
+    borderRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 24,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.25,
+    shadowRadius: 40,
+    elevation: 16,
   },
   cardTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: 24,
     fontFamily: "Inter_700Bold",
+    color: "#0f172a",
     marginBottom: 4,
   },
   cardSub: {
     fontSize: 14,
-    color: "#6B7280",
+    color: "#94A3B8",
     fontFamily: "Inter_400Regular",
     marginBottom: 24,
   },
-  errorBox: {
-    backgroundColor: "#FEE2E2",
-    borderRadius: 12,
-    padding: 12,
+  errorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: "#EF4444",
   },
   errorText: {
     color: "#DC2626",
     fontSize: 13,
     fontFamily: "Inter_400Regular",
+    flex: 1,
   },
-  inputGroup: {
+  fieldWrap: {
     marginBottom: 16,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
+  fieldLabel: {
+    fontSize: 12,
     fontFamily: "Inter_600SemiBold",
+    color: "#475569",
+    marginBottom: 8,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
   },
-  input: {
-    borderWidth: 1.5,
-    borderColor: "#E5E7EB",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
-    fontFamily: "Inter_400Regular",
-    marginBottom: 0,
-  },
-  passwordRow: {
+  inputBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 14,
+    paddingVertical: 0,
+    height: 52,
+  },
+  inputBoxFocused: {
+    borderColor: "#2563eb",
+    backgroundColor: "#EFF6FF",
+    shadowColor: "#2563eb",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: "#0f172a",
+    fontFamily: "Inter_400Regular",
+    height: "100%",
   },
   eyeBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    borderWidth: 1.5,
-    borderColor: "#E5E7EB",
-    borderRadius: 14,
-    backgroundColor: "#F9FAFB",
+    padding: 4,
+    marginLeft: 8,
   },
-  eyeText: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontFamily: "Inter_500Medium",
-  },
-  loginBtn: {
+  btnWrap: {
     marginTop: 8,
     borderRadius: 16,
     overflow: "hidden",
+    shadowColor: "#2563eb",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  loginBtnGradient: {
-    paddingVertical: 16,
+  btn: {
+    height: 54,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 16,
   },
-  loginBtnText: {
+  btnText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "700",
     fontFamily: "Inter_700Bold",
+    letterSpacing: 0.3,
   },
-  signupLink: {
+  divider: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 20,
+    marginVertical: 20,
+    gap: 12,
   },
-  signupLinkText: {
-    fontSize: 14,
-    color: "#6B7280",
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E2E8F0",
+  },
+  dividerText: {
+    fontSize: 12,
+    color: "#94A3B8",
     fontFamily: "Inter_400Regular",
   },
-  signupLinkBold: {
-    color: "#3B82F6",
-    fontWeight: "700",
-    fontFamily: "Inter_700Bold",
+  secondaryBtn: {
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8FAFC",
   },
-  footer: {
-    marginTop: 24,
-    fontSize: 11,
-    color: "rgba(255,255,255,0.6)",
+  secondaryBtnText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    color: "#334155",
+  },
+  terms: {
     textAlign: "center",
+    fontSize: 11,
+    color: "rgba(255,255,255,0.35)",
     fontFamily: "Inter_400Regular",
-    lineHeight: 17,
+    lineHeight: 18,
+    marginTop: 24,
+    paddingHorizontal: 32,
+  },
+  termsLink: {
+    color: "rgba(255,255,255,0.55)",
+    textDecorationLine: "underline",
   },
 });
