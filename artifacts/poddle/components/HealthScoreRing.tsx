@@ -44,43 +44,47 @@ export function HealthScoreRing({ score, size = 160 }: Props) {
   }));
 
   return (
-    <View style={[styles.container, { width: size, height: size + 28 }]}>
-      <Svg width={size} height={size}>
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={colors.border}
-          strokeWidth={10}
-          fill="none"
-        />
-        <AnimatedCircle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={scoreColor}
-          strokeWidth={10}
-          fill="none"
-          strokeDasharray={`${circumference} ${circumference}`}
-          animatedProps={animatedProps}
-          strokeLinecap="round"
-          rotation="-90"
-          origin={`${size / 2}, ${size / 2}`}
-        />
-      </Svg>
+    <View style={styles.wrapper}>
+      <View style={[styles.ringContainer, { width: size, height: size }]}>
+        <Svg width={size} height={size}>
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={colors.border}
+            strokeWidth={10}
+            fill="none"
+          />
+          <AnimatedCircle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={scoreColor}
+            strokeWidth={10}
+            fill="none"
+            strokeDasharray={`${circumference} ${circumference}`}
+            animatedProps={animatedProps}
+            strokeLinecap="round"
+            rotation="-90"
+            origin={`${size / 2}, ${size / 2}`}
+          />
+        </Svg>
 
-      <View style={[styles.center, { width: size, height: size }]}>
-        <View style={styles.scoreRow}>
-          <Text style={[styles.score, { color: colors.foreground }]}>
-            {score}
-          </Text>
-          <Text style={[styles.outOf, { color: colors.mutedForeground }]}>
-            /100
-          </Text>
+        <View style={StyleSheet.absoluteFillObject}>
+          <View style={styles.centerContent}>
+            <View style={styles.scoreRow}>
+              <Text style={[styles.score, { color: colors.foreground }]}>
+                {score}
+              </Text>
+              <Text style={[styles.outOf, { color: colors.mutedForeground }]}>
+                /100
+              </Text>
+            </View>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>
+              AKTİFLİK
+            </Text>
+          </View>
         </View>
-        <Text style={[styles.label, { color: colors.mutedForeground }]}>
-          AKTİFLİK
-        </Text>
       </View>
 
       <View style={[styles.badge, { backgroundColor: `${scoreColor}18` }]}>
@@ -98,14 +102,15 @@ export function HealthScoreRing({ score, size = 160 }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     alignItems: "center",
-    justifyContent: "flex-start",
+    gap: 10,
   },
-  center: {
-    position: "absolute",
-    top: 0,
-    left: 0,
+  ringContainer: {
+    position: "relative",
+  },
+  centerContent: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -131,7 +136,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   badge: {
-    marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
@@ -151,7 +155,6 @@ const styles = StyleSheet.create({
   disclaimer: {
     fontSize: 10,
     fontFamily: "Inter_400Regular",
-    marginTop: 5,
     opacity: 0.7,
   },
 });
