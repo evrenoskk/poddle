@@ -38,6 +38,7 @@ An AI-powered pet care companion mobile app.
 - Inter font family (400/500/600/700)
 - Animated health score ring (react-native-reanimated)
 - LinearGradient headers
+- SharedHeader component (`components/SharedHeader.tsx`) — consistent header across all tabs with profile button always in top-left, title, optional subtitle, and right-side action buttons. Each tab uses this shared layout.
 
 ### API Server (`artifacts/api-server/`)
 Express 5 backend with:

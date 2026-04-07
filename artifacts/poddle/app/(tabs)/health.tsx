@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useApp, Task, HealthLog } from "@/context/AppContext";
 import { TaskCard } from "@/components/TaskCard";
+import { SharedHeader } from "@/components/SharedHeader";
 import { HealthScoreRing } from "@/components/HealthScoreRing";
 
 type TaskType = Task["type"];
@@ -320,13 +321,10 @@ export default function HealthScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
-        colors={[colors.primary, "#1d4ed8"]}
-        style={[styles.header, { paddingTop: topInset + 12 }]}
-      >
-        <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>Sağlık Takibi</Text>
-          {activePet && (
+      <SharedHeader
+        title="Sağlık Takibi"
+        rightContent={
+          activePet ? (
             <View style={{ flexDirection: "row", gap: 8 }}>
               <TouchableOpacity
                 style={[styles.headerBtn, { backgroundColor: "rgba(255,255,255,0.2)" }]}
@@ -343,9 +341,9 @@ export default function HealthScreen() {
                 <Text style={styles.headerBtnText}>Görev</Text>
               </TouchableOpacity>
             </View>
-          )}
-        </View>
-      </LinearGradient>
+          ) : undefined
+        }
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -523,18 +521,6 @@ export default function HealthScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff" },
   headerBtn: {
     flexDirection: "row",
     alignItems: "center",

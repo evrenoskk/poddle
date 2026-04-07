@@ -26,6 +26,7 @@ import { useColors } from "@/hooks/useColors";
 import { useApp, ChatSession, ChatMessage, Task } from "@/context/AppContext";
 import { SubscriptionModal } from "@/components/SubscriptionModal";
 import { PodleLogo } from "@/components/PodleLogo";
+import { SharedHeader } from "@/components/SharedHeader";
 import { fetch } from "expo/fetch";
 
 const API_BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
@@ -601,28 +602,18 @@ function SessionListView({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
-        colors={[colors.primary, "#1d4ed8"]}
-        style={[styles.sessionHeader, { paddingTop: topInset + 12 }]}
-      >
-        <View style={styles.sessionHeaderRow}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <View style={styles.sessionLogoBox}>
-              <PodleLogo size={22} />
-            </View>
-            <View>
-              <Text style={styles.sessionHeaderTitle}>Poddle AI</Text>
-              <Text style={styles.sessionHeaderSub}>{petName} için veteriner danışman</Text>
-            </View>
-          </View>
+      <SharedHeader
+        title="Poddle AI"
+        subtitle={`${petName} için veteriner danışman`}
+        rightContent={
           <TouchableOpacity
             style={styles.newSessionBtn}
             onPress={() => setShowNew(!showNew)}
           >
             <Feather name={showNew ? "x" : "plus"} size={18} color="#fff" />
           </TouchableOpacity>
-        </View>
-
+        }
+      >
         {showNew && (
           <View style={styles.newSessionForm}>
             <TextInput
@@ -658,7 +649,7 @@ function SessionListView({
             </TouchableOpacity>
           </View>
         )}
-      </LinearGradient>
+      </SharedHeader>
 
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: TAB_BAR_HEIGHT + 16 }}
@@ -1217,15 +1208,6 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  sessionHeader: { paddingHorizontal: 20, paddingBottom: 18 },
-  sessionHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  sessionLogoBox: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center", alignItems: "center",
-  },
-  sessionHeaderTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#fff" },
-  sessionHeaderSub: { fontSize: 12, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginTop: 1 },
   newSessionBtn: {
     width: 38, height: 38, borderRadius: 19,
     backgroundColor: "rgba(255,255,255,0.2)",

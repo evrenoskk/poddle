@@ -19,7 +19,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useApp, Pet } from "@/context/AppContext";
-import { UserProfileModal } from "@/components/UserProfileModal";
+import { SharedHeader } from "@/components/SharedHeader";
 
 const SPECIES_EMOJI: Record<string, string> = {
   Köpek: "🐕",
@@ -488,7 +488,6 @@ export default function PetLibraryScreen() {
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
   const [showAddEdit, setShowAddEdit] = useState(false);
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
-  const [showUserProfile, setShowUserProfile] = useState(false);
 
   const topInset = insets.top + (Platform.OS === "web" ? 67 : 0);
   const TAB_BAR_HEIGHT = Platform.OS === "web" ? 84 : 66;
@@ -526,31 +525,18 @@ export default function PetLibraryScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
-        colors={[colors.primary, "#1d4ed8"]}
-        style={[styles.header, { paddingTop: topInset + 12 }]}
-      >
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.headerTitle}>Evcil Hayvanlarım</Text>
-            <Text style={styles.headerSub}>{pets.length} hayvan kayıtlı</Text>
-          </View>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <TouchableOpacity
-              style={[styles.headerIconBtn, { backgroundColor: "rgba(255,255,255,0.15)" }]}
-              onPress={() => setShowUserProfile(true)}
-            >
-              <Feather name="user" size={18} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.headerIconBtn, { backgroundColor: "rgba(255,255,255,0.2)" }]}
-              onPress={handleAddNew}
-            >
-              <Feather name="plus" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </LinearGradient>
+      <SharedHeader
+        title="Evcil Hayvanlarım"
+        subtitle={`${pets.length} hayvan kayıtlı`}
+        rightContent={
+          <TouchableOpacity
+            style={[styles.headerIconBtn, { backgroundColor: "rgba(255,255,255,0.2)" }]}
+            onPress={handleAddNew}
+          >
+            <Feather name="plus" size={20} color="#fff" />
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -601,10 +587,6 @@ export default function PetLibraryScreen() {
         editPet={editingPet}
       />
 
-      <UserProfileModal
-        visible={showUserProfile}
-        onClose={() => setShowUserProfile(false)}
-      />
     </View>
   );
 }
@@ -644,10 +626,6 @@ const styles = StyleSheet.create({
   addBtn: { borderRadius: 14, paddingVertical: 14, alignItems: "center", marginTop: 8 },
   addBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
 
-  header: { paddingHorizontal: 20, paddingBottom: 16 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff" },
-  headerSub: { fontSize: 12, color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular", marginTop: 2 },
   headerIconBtn: { width: 38, height: 38, borderRadius: 19, justifyContent: "center", alignItems: "center" },
 
   petGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },

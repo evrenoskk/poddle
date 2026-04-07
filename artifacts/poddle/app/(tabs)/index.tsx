@@ -17,7 +17,7 @@ import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
 import { TaskCard } from "@/components/TaskCard";
 import { PodleLogo } from "@/components/PodleLogo";
-import { UserProfileModal } from "@/components/UserProfileModal";
+import { SharedHeader } from "@/components/SharedHeader";
 
 const SPECIES_ICON: Record<string, string> = {
   Köpek: "dog",
@@ -32,7 +32,6 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { pets, activePetId, tasks, updateTask, deleteTask } = useApp();
-  const [showUserProfile, setShowUserProfile] = useState(false);
 
   const activePet = pets.find((p) => p.id === activePetId) ?? pets[0];
   const upcomingTasks = tasks
@@ -67,44 +66,23 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: bottomInset + 80 }}
       >
-        {/* Gradient Header */}
-        <LinearGradient
-          colors={["#1E40AF", "#2563EB", "#3B82F6"]}
-          style={[styles.header, { paddingTop: topInset + 16 }]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          {/* Decorative circles */}
-          <View style={styles.headerDecorCircle1} />
-          <View style={styles.headerDecorCircle2} />
-
-          <View style={styles.headerContent}>
-            <TouchableOpacity
-              style={styles.userProfileBtn}
-              onPress={() => setShowUserProfile(true)}
-            >
-              <View style={styles.userProfileAvatar}>
-                <Feather name="user" size={18} color="#fff" />
-              </View>
-            </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Text style={styles.headerGreeting}>{greeting} 👋</Text>
-              <Text style={styles.headerBrand}>Poddle</Text>
-            </View>
+        <SharedHeader
+          title={`${greeting} 👋`}
+          subtitle="Poddle"
+          rightContent={
             <TouchableOpacity style={styles.notifBtn}>
               <Feather name="bell" size={18} color="#fff" />
               <View style={styles.notifDot} />
             </TouchableOpacity>
-          </View>
-
-          {/* Active pet preview in header */}
+          }
+        >
           {activePet && (
             <View style={styles.headerPetBadge}>
               <View style={[styles.headerPetDot, { backgroundColor: "#10B981" }]} />
               <Text style={styles.headerPetText}>{activePet.name} — {activePet.status}</Text>
             </View>
           )}
-        </LinearGradient>
+        </SharedHeader>
 
         <View style={styles.content}>
           {/* Hero Pet Card */}
@@ -281,77 +259,12 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <UserProfileModal
-        visible={showUserProfile}
-        onClose={() => setShowUserProfile(false)}
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 28,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    overflow: "hidden",
-  },
-  headerDecorCircle1: {
-    position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    top: -50,
-    right: -40,
-  },
-  headerDecorCircle2: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    bottom: -30,
-    left: 20,
-  },
-  headerContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: "center",
-  },
-  userProfileBtn: {
-    padding: 2,
-  },
-  userProfileAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerGreeting: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.75)",
-    fontFamily: "Inter_400Regular",
-  },
-  headerBrand: {
-    fontSize: 22,
-    color: "#fff",
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.5,
-  },
   notifBtn: {
     width: 42,
     height: 42,
