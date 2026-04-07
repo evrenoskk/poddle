@@ -47,11 +47,21 @@ export type Subscription = {
   freeQuestionsTotal: number;
 };
 
+export type HealthLog = {
+  id: number;
+  petId: number;
+  logType: string;
+  value: string;
+  notes: string;
+  loggedAt: string;
+};
+
 type AppContextType = {
   pets: Pet[];
   activePetId: number | null;
   tasks: Task[];
   messages: ChatMessage[];
+  healthLogs: HealthLog[];
   subscription: Subscription;
   isLoaded: boolean;
   addPet: (pet: Omit<Pet, "id">) => Promise<void>;
@@ -64,6 +74,9 @@ type AppContextType = {
   addMessage: (message: ChatMessage) => void;
   updateMessage: (id: string, content: string) => void;
   clearMessages: () => void;
+  addHealthLog: (petId: number, logType: string, value: string, notes: string) => Promise<void>;
+  deleteHealthLog: (id: number) => Promise<void>;
+  fetchHealthLogs: (petId: number) => Promise<void>;
   canAskQuestion: () => boolean;
   useQuestion: () => void;
   refreshPets: () => Promise<void>;
@@ -89,6 +102,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activePetId, setActivePetIdState] = useState<number | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
   const [subscription, setSubscription] =
     useState<Subscription>(defaultSubscription);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -102,6 +116,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {
       // offline - keep current pets
+    }
+  }, []);
+
+  const fetchHealthLogs = useCallback(async (petId: number) => {
+    try {
+      const resp = await fetch(`${API_BASE}/api/health-logs/${petId}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        setHealthLogs(data);
+      }
+    } catch {
+      // offline - keep current logs
     }
   }, []);
 
@@ -127,6 +153,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     })();
   }, [fetchPets]);
+
+  // Fetch health logs when active pet changes
+  useEffect(() => {
+    if (activePetId != null) fetchHealthLogs(activePetId);
+    else setHealthLogs([]);
+  }, [activePetId, fetchHealthLogs]);
 
   const persistTasks = useCallback(async (newTasks: Task[]) => {
     await AsyncStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(newTasks));
@@ -256,6 +288,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.removeItem(STORAGE_KEYS.MESSAGES);
   }, []);
 
+  const addHealthLog = useCallback(
+    async (petId: number, logType: string, value: string, notes: string) => {
+      const resp = await fetch(`${API_BASE}/api/health-logs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ petId, logType, value, notes }),
+      });
+      if (resp.ok) {
+        const newLog: HealthLog = await resp.json();
+        setHealthLogs((prev) => [newLog, ...prev]);
+      }
+    },
+    []
+  );
+
+  const deleteHealthLog = useCallback(async (id: number) => {
+    await fetch(`${API_BASE}/api/health-logs/${id}`, { method: "DELETE" });
+    setHealthLogs((prev) => prev.filter((l) => l.id !== id));
+  }, []);
+
   const canAskQuestion = useCallback(() => {
     if (subscription.plan === "monthly") return true;
     if (subscription.plan === "pay_per_question") return true;
@@ -282,6 +334,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         activePetId,
         tasks,
         messages,
+        healthLogs,
         subscription,
         isLoaded,
         addPet,
@@ -294,6 +347,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addMessage,
         updateMessage,
         clearMessages,
+        addHealthLog,
+        deleteHealthLog,
+        fetchHealthLogs,
         canAskQuestion,
         useQuestion,
         refreshPets: fetchPets,

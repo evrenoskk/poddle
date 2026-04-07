@@ -116,7 +116,7 @@ function MessageBubble({ msg, colors }: { msg: Msg; colors: ReturnType<typeof us
 export default function ChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { messages, addMessage, updateMessage, clearMessages, subscription, canAskQuestion, useQuestion, pets, activePetId } = useApp();
+  const { messages, addMessage, updateMessage, clearMessages, subscription, canAskQuestion, useQuestion, pets, activePetId, healthLogs } = useApp();
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<{ uri: string; type: "image" | "video" } | null>(null);
@@ -167,9 +167,20 @@ export default function ChatScreen() {
     setIsSending(true);
 
     try {
-      const petContext = activePet
-        ? `Evcil hayvan: ${activePet.name}, Tür: ${activePet.species}, Irk: ${activePet.breed}, Yaş: ${activePet.age}, Kilo: ${activePet.weight}kg, Cinsiyet: ${activePet.gender}.`
+      let petContext = activePet
+        ? `Evcil hayvan: ${activePet.name}, Tür: ${activePet.species}, Irk: ${activePet.breed}, Yaş: ${activePet.age}, Kilo: ${activePet.weight}kg, Cinsiyet: ${activePet.gender === "male" ? "Erkek" : "Dişi"}, Durum: ${activePet.status}.`
         : "";
+
+      if (activePet && healthLogs.length > 0) {
+        const recent = healthLogs.slice(0, 15);
+        const logLines = recent.map((log) => {
+          const date = new Date(log.loggedAt);
+          const diffDays = Math.floor((Date.now() - date.getTime()) / 86400000);
+          const dateLabel = diffDays === 0 ? "bugün" : diffDays === 1 ? "dün" : `${diffDays} gün önce`;
+          return `  - ${dateLabel}: [${log.logType}] ${log.value}${log.notes ? ` — ${log.notes}` : ""}`;
+        }).join("\n");
+        petContext += `\n\nSon sağlık kayıtları (kronolojik):\n${logLines}`;
+      }
 
       const historyMsgs = messages.slice(-8).map((m) => ({
         role: m.role,
@@ -264,7 +275,7 @@ export default function ChatScreen() {
     } finally {
       setIsSending(false);
     }
-  }, [text, selectedMedia, canAskQuestion, useQuestion, addMessage, messages, activePet]);
+  }, [text, selectedMedia, canAskQuestion, useQuestion, addMessage, messages, activePet, healthLogs]);
 
   const questionsLeft =
     subscription.plan === "monthly"
