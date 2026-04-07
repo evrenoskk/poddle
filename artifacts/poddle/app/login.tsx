@@ -16,14 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppContext } from "@/context/AppContext";
-
-function PawIcon({ size = 40 }: { size?: number }) {
-  return (
-    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontSize: size * 0.72, lineHeight: size }}>🐾</Text>
-    </View>
-  );
-}
+import { PodleLogo } from "@/components/PodleLogo";
 
 export default function LoginScreen() {
   const { login } = useAppContext();
@@ -95,12 +88,7 @@ export default function LoginScreen() {
           {/* Hero section */}
           <View style={[styles.hero, { paddingTop: safeTop + 48 }]}>
             <View style={styles.logoWrap}>
-              <LinearGradient
-                colors={["rgba(255,255,255,0.25)", "rgba(255,255,255,0.08)"]}
-                style={styles.logoGlass}
-              >
-                <PawIcon size={38} />
-              </LinearGradient>
+              <PodleLogo size={80} />
             </View>
             <Text style={styles.brandName}>Poddle</Text>
             <Text style={styles.brandSub}>AI destekli evcil hayvan asistanın</Text>
@@ -255,15 +243,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.45,
     shadowRadius: 20,
     elevation: 10,
-  },
-  logoGlass: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
   },
   brandName: {
     fontSize: 34,
